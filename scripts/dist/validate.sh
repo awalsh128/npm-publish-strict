@@ -11,22 +11,7 @@ branch="${GITHUB_REF_NAME:?}"
 [[ -f package.json && -f package-lock.json ]] ||
   fail "package.json and package-lock.json are required."
 
-node --input-type=module - "$DOCS_SCRIPT" <<'JS'
-import { readFileSync } from "node:fs";
-const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-const docsScript = process.argv[2];
-const errors = [];
-if (pkg.version !== "0.0.0-semantically-released")
-  errors.push(`"version" must be the placeholder "0.0.0-semantically-released" (releases never commit).`);
-if (!pkg.repository) errors.push(`"repository" is required for npm trusted publishing and provenance.`);
-if (!pkg.scripts?.[docsScript]) errors.push(`npm script "${docsScript}" (typedoc) is required.`);
-if (!pkg.files?.length) errors.push(`"files" must list what is packaged.`);
-if (pkg.private) errors.push(`"private" must not be true.`);
-if (errors.length) {
-  for (const e of errors) console.log(`::error::package.json: ${e}`);
-  process.exit(1);
-}
-JS
+node "$(dirname "${BASH_SOURCE[0]}")/validate-package.mjs" "$DOCS_SCRIPT"
 
 # Every 'uses:' in the consumer's workflows and local actions must be pinned to a full commit SHA.
 unpinned=$(grep -rEn '^\s*-?\s*uses:\s*[^./[:space:]][^@[:space:]]*@' .github 2>/dev/null |
