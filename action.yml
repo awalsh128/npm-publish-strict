@@ -1,21 +1,30 @@
 name: "NPM Publish Strict"
 description: >-
   Opinionated release pipeline: semantic-release (Conventional Commits), typedoc API docs, and npm
-  publishing via trusted publishing (OIDC). Fails fast when the repository breaks the conventions.
+  publishing via trusted publishing (OIDC). Fails fast, with fix steps, when the repository breaks
+  the conventions.
 author: Andrew Walsh
 branding:
   icon: package
   color: green
 
 inputs:
+  mode:
+    description: >-
+      'release' checks preconditions, then releases. 'check' only checks preconditions (including
+      the npm trusted publisher), so you can confirm a fix without releasing anything.
+    required: false
+    default: "release"
   dry-run:
     description: "Run the release without tagging, publishing, or creating a GitHub Release."
     required: false
     default: "false"
-  node-version:
-    description: "Node.js version used for the release."
+  baseline-commit:
+    description: >-
+      Commit (SHA) from which Conventional Commits are enforced and releases are analyzed. Earlier
+      history is ignored. Leave empty to enforce the whole history.
     required: false
-    default: "24"
+    default: ""
   docs-script:
     description: "npm script that builds the API docs (typedoc). Must exist in the consumer package.json."
     required: false
@@ -46,47 +55,9 @@ inputs:
 outputs:
   version:
     description: "Released version; empty when nothing was released."
-    value: ${{ steps.release.outputs.version }}
   docs-dir:
     description: "Directory holding the built API docs; empty when nothing was released."
-    value: ${{ steps.release.outputs.docs-dir }}
 
 runs:
-  using: composite
-  steps:
-    - name: Validate repository
-      shell: bash
-      env:
-        DOCS_SCRIPT: ${{ inputs.docs-script }}
-        RELEASE_BRANCH: ${{ inputs.release-branch }}
-        CANDIDATE_BRANCH: ${{ inputs.candidate-branch }}
-      run: bash "$GITHUB_ACTION_PATH/scripts/dist/validate.sh"
-
-    - name: Setup Node.js
-      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-      with:
-        node-version: ${{ inputs.node-version }}
-        cache: npm
-
-    # Scripts stay off: this job can mint npm (OIDC) and GitHub credentials, so dependency install
-    # scripts must not run with them.
-    - name: Install consumer dependencies
-      shell: bash
-      run: npm ci --ignore-scripts
-
-    - name: Install release tooling
-      shell: bash
-      run: npm ci --ignore-scripts --prefix "$GITHUB_ACTION_PATH"
-
-    - name: Release
-      id: release
-      shell: bash
-      env:
-        DRY_RUN: ${{ inputs.dry-run }}
-        DOCS_SCRIPT: ${{ inputs.docs-script }}
-        DOCS_DIR: ${{ inputs.docs-dir }}
-        RELEASE_BRANCH: ${{ inputs.release-branch }}
-        CANDIDATE_BRANCH: ${{ inputs.candidate-branch }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
-        GIT_CREDENTIALS: ${{ inputs.git-credentials != '' && inputs.git-credentials || format('x-access-token:{0}', inputs.github-token) }}
-      run: bash "$GITHUB_ACTION_PATH/scripts/dist/release.sh"
+  using: node24
+  main: dist/main.js

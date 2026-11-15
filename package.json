@@ -12,7 +12,10 @@
   "type": "module",
   "engines": { "node": ">=24" },
   "scripts": {
-    "lint": "shellcheck scripts/dist/*.sh",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check:dist": "npm run build && git diff --exit-code -- dist",
     "commitlint": "commitlint"
   },
   "dependencies": {
@@ -26,6 +29,9 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
-    "@commitlint/config-conventional": "^21.2.4"
+    "@commitlint/config-conventional": "^21.2.4",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.0",
+    "vitest": "^3.2.0"
   }
 }

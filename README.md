@@ -4,16 +4,64 @@
 
 An opinionated NPM publish GitHub Action. It runs [semantic-release](https://semantic-release.gitbook.io)
 (Conventional Commits), builds API docs with typedoc, and publishes to npm with trusted publishing
-(OIDC, no token). It fails fast when the repository breaks the conventions from
-[ts-apt](https://github.com/awalsh128/ts-apt).
+(OIDC, no token). When the repository doesn't meet its preconditions, it stops before releasing and
+tells you exactly how to fix each one.
 
-## Conventions enforced
+Written in TypeScript (`src/`), compiled to `dist/`.
 
-- Runs only on `main` (official release, npm publish) or `staging` (`-rc.N` candidate, tag and GitHub prerelease only).
-- `package.json` keeps the placeholder version `0.0.0-semantically-released`, has `repository`, `files` and the docs script, and is not private.
-- No `CHANGELOG.md` and no release commits; tags and GitHub Releases are the history.
-- Every `uses:` under `.github/` is pinned to a full commit SHA.
-- Dependency install scripts never run in the release job.
+## Preconditions
+
+Every run checks these, and reports all failures at once, not just the first:
+
+| Check | Why |
+| --- | --- |
+| Runs on `main` (official release, npm publish) or `staging` (`-rc.N` candidate, tag and GitHub prerelease only) | Predictable release flow |
+| `package.json` and `package-lock.json` exist | Reproducible installs |
+| `version` is the placeholder `0.0.0-semantically-released` | Releases never commit |
+| `repository` matches the GitHub repository running the workflow | npm provenance and trusted publishing |
+| The docs script (default `docs:api`) exists; `files` is set; the package isn't `private` | Docs are built before tagging; contents are predictable |
+| No `CHANGELOG.md` | Tags and GitHub Releases are the history |
+| Every `uses:` under `.github/` is pinned to a full commit SHA | Supply-chain safety |
+| Full git history (`fetch-depth: 0`) | semantic-release reads every commit and tag |
+| Commits follow Conventional Commits (from `baseline-commit`, when set) | Versions are computed from commit messages |
+| On the release branch: job has `id-token: write`, npm is 11.5.1 or later, and npm accepts this workflow as a **trusted publisher** of the package | Publishing without a token |
+
+The trusted publisher check does what `npm publish` does: it exchanges the job's OIDC token with npm.
+So it catches a typo in the workflow filename or repository, which npm never validates when you save
+the setting.
+
+### When a check fails
+
+The job log and the job summary give, for each failed check:
+
+- **Automated:** commands to run in a clone of the repository (`npm pkg set ...`, `npm trust github ...`,
+  `npx pin-github-action ...`), then commit and push.
+- **Manual:** numbered steps with navigation, for example *Click your avatar > Packages > your-package >
+  Settings > Trusted Publisher*, with the exact values to enter, and YAML snippets for workflow edits.
+- **Read more:** links to the relevant npm and GitHub documentation.
+
+Then **verify the fix** without releasing anything: run the action with `mode: check`. It runs the
+same checks, including the live npm trusted publisher exchange, and does nothing else.
+
+```yaml
+- uses: awalsh128/npm-publish-strict-action@<sha>
+  with:
+    mode: check
+```
+
+## Adopting Conventional Commits on an existing repository
+
+Commits are checked against Conventional Commits. If your history predates the convention, set
+`baseline-commit` to the last commit that doesn't follow it, or to the current `HEAD`:
+
+```yaml
+  with:
+    baseline-commit: 1a2b3c4d5e6f
+```
+
+Commits up to and including the baseline are ignored by the commit check, the version calculation and
+the release notes. Only newer commits count. The baseline must be an ancestor of the commit being
+released, and the action checks that too.
 
 ## Usage
 
@@ -26,7 +74,6 @@ permissions: {}
 jobs:
   release:
     runs-on: ubuntu-24.04
-    environment: release
     permissions:
       contents: write      # tags and GitHub Releases
       id-token: write      # npm trusted publishing
@@ -37,20 +84,35 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@<sha>
+        with:
+          node-version: 24
+          cache: npm
       - id: release
         uses: awalsh128/npm-publish-strict-action@<sha>
 ```
 
-Configure the package's trusted publisher on npmjs.com to this workflow file.
+Configure the package's trusted publisher on npmjs.com for this workflow file (or run
+`npm trust github <package> --file release.yml --repo <owner>/<repo>`).
 
 | Input | Default | Purpose |
 | --- | --- | --- |
+| `mode` | `release` | `check` only verifies preconditions |
 | `dry-run` | `false` | Release without tagging or publishing |
-| `node-version` | `24` | Node.js version |
+| `baseline-commit` | | Enforce and version only commits after this SHA |
 | `docs-script` | `docs:api` | npm script running typedoc |
 | `docs-dir` | `docs/api` | Docs output directory |
 | `release-branch` | `main` | Official release branch |
 | `candidate-branch` | `staging` | Release candidate branch |
 | `git-credentials` | | `user:token` for pushing tags (e.g. a GitHub App token) |
+| `github-token` | `github.token` | Token for the GitHub API |
 
 Outputs: `version` (empty when nothing was released) and `docs-dir`, for deploying Pages in a follow-up job.
+
+## Development
+
+```bash
+npm ci
+npm run typecheck && npm test
+npm run build        # compiles src/ to dist/; commit dist/ with every src/ change
+```
