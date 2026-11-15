@@ -304,6 +304,25 @@ export const checks = [
             },
     },
     {
+        id: "public-repository",
+        title: "Repository is public, so npm provenance can be generated",
+        applies: publishes,
+        run: async (ctx) => (await ctx.repoIsPublic()) !== false
+            ? null
+            : {
+                problem: `${ctx.repository} is private. This action publishes with npm provenance (a signed attestation linking the package to its source and workflow), which npm only issues for public repositories.`,
+                automated: [
+                    { label: "Make the repository public (irreversible for forks and stars; read the docs first)", command: `gh repo edit ${ctx.repository} --visibility public --accept-visibility-change-consequences` },
+                ],
+                manual: [
+                    `Go to https://github.com/${ctx.repository}/settings.`,
+                    "Scroll to the Danger Zone and choose Change visibility > Make public.",
+                    "Or release from a public repository instead.",
+                ],
+                links: [LINKS.provenance],
+            },
+    },
+    {
         id: "npm-version",
         title: "npm supports trusted publishing",
         applies: publishes,

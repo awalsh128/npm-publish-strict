@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { actionRoot, readInputs } from "../src/release.js";
+import { actionRoot, readInputs, releaseEnv } from "../src/release.js";
+
+describe("releaseEnv", () => {
+  const inputs = readInputs({});
+
+  it("official release branch publishes with provenance", () => {
+    const env = releaseEnv(inputs, { GITHUB_REF_NAME: "main" });
+    expect(env).toMatchObject({ NPM_PUBLISH: "true", NPM_CONFIG_PROVENANCE: "true" });
+  });
+
+  it("candidate branch does not publish or request provenance", () => {
+    const env = releaseEnv(inputs, { GITHUB_REF_NAME: "staging" });
+    expect(env.NPM_PUBLISH).toBe("false");
+    expect(env.NPM_CONFIG_PROVENANCE).toBeUndefined();
+  });
+
+  it("dry run on the release branch does not publish", () => {
+    expect(releaseEnv(readInputs({ "INPUT_DRY-RUN": "true" }), { GITHUB_REF_NAME: "main" }).NPM_PUBLISH).toBe("false");
+  });
+});
 
 describe("actionRoot", () => {
   it("compiled file in dist returns the directory above dist", () => {

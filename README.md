@@ -24,7 +24,7 @@ Every run checks these, and reports all failures at once, not just the first:
 | Every `uses:` under `.github/` is pinned to a full commit SHA | Supply-chain safety |
 | Full git history (`fetch-depth: 0`) | semantic-release reads every commit and tag |
 | Commits follow Conventional Commits (from `baseline-commit`, when set) | Versions are computed from commit messages |
-| On the release branch: job has `id-token: write`, npm is 11.5.1 or later, and npm accepts this workflow as a **trusted publisher** of the package | Publishing without a token |
+| On the release branch: the repository is public (npm only issues provenance for public repos), job has `id-token: write`, npm is 11.5.1 or later, and npm accepts this workflow as a **trusted publisher** of the package | Publishing without a token |
 
 The trusted publisher check does what `npm publish` does: it exchanges the job's OIDC token with npm.
 So it catches a typo in the workflow filename or repository, which npm never validates when you save
@@ -109,6 +109,22 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `github-token` | `github.token` | Token for the GitHub API |
 
 Outputs: `version` (empty when nothing was released), `docs-dir` (for deploying Pages in a follow-up job), and `failed-checks` (comma-separated ids of failed preconditions, empty when all pass).
+
+## Supply chain: attestations
+
+- **Your package:** every npm publish from the release branch runs with provenance on
+  (`NPM_CONFIG_PROVENANCE=true`), so npm attaches a signed Sigstore attestation linking the package
+  to your repository, commit and workflow. Consumers verify with `npm audit signatures`. Publishing
+  from a private repository is refused by a precondition, because npm can't issue provenance for it.
+- **This action:** each release uploads `npm-publish-strict-action-<tag>.tar.gz` (the manifest, compiled
+  `dist/`, and release config) with a GitHub build-provenance attestation. Verify the bytes you run:
+
+  ```bash
+  gh release download <tag> -R awalsh128/npm-publish-strict-action -p '*.tar.gz'
+  gh attestation verify npm-publish-strict-action-<tag>.tar.gz -R awalsh128/npm-publish-strict-action
+  ```
+
+  Pin the action by commit SHA, as the examples do; the attestation covers the same tagged commit.
 
 ## Development
 

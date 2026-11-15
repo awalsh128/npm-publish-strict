@@ -51,6 +51,25 @@ function run(command: string, args: string[], options: { cwd?: string; env?: Env
   if (result.status !== 0) throw new Error(`'${command} ${args.join(" ")}' failed with exit code ${result.status}.`);
 }
 
+/** Environment for semantic-release and the plugins it runs (release.config.mjs reads most of it). */
+export function releaseEnv(inputs: Inputs, env: Env): Env {
+  const publish = env.GITHUB_REF_NAME === inputs.releaseBranch && !inputs.dryRun;
+  return {
+    ...env,
+    DOCS_SCRIPT: inputs.docsScript,
+    DOCS_DIR: inputs.docsDir,
+    BASELINE_COMMIT: inputs.baselineCommit,
+    BRANCH_RELEASE: inputs.releaseBranch,
+    BRANCH_CANDIDATE: inputs.candidateBranch,
+    // Only the official release branch publishes to npm; dry runs never do.
+    NPM_PUBLISH: publish ? "true" : "false",
+    // Always sign: npm attaches a Sigstore provenance attestation of the source repo and workflow.
+    ...(publish ? { NPM_CONFIG_PROVENANCE: "true" } : {}),
+    GITHUB_TOKEN: inputs.githubToken,
+    GIT_CREDENTIALS: inputs.gitCredentials,
+  };
+}
+
 /**
  * Installs dependencies and runs semantic-release with the bundled config.
  * Install scripts stay off: this job can mint npm (OIDC) and GitHub credentials, so a dependency's
@@ -64,19 +83,5 @@ export function release(inputs: Inputs, env: Env, actionPath: string, cwd: strin
   const args = ["--extends", join(actionPath, "release.config.mjs")];
   if (inputs.dryRun) args.push("--dry-run");
 
-  run(join(actionPath, "node_modules", ".bin", "semantic-release"), args, {
-    cwd,
-    env: {
-      ...env,
-      DOCS_SCRIPT: inputs.docsScript,
-      DOCS_DIR: inputs.docsDir,
-      BASELINE_COMMIT: inputs.baselineCommit,
-      BRANCH_RELEASE: inputs.releaseBranch,
-      BRANCH_CANDIDATE: inputs.candidateBranch,
-      // Only the official release branch publishes to npm; dry runs never do.
-      NPM_PUBLISH: env.GITHUB_REF_NAME === inputs.releaseBranch && !inputs.dryRun ? "true" : "false",
-      GITHUB_TOKEN: inputs.githubToken,
-      GIT_CREDENTIALS: inputs.gitCredentials,
-    },
-  });
+  run(join(actionPath, "node_modules", ".bin", "semantic-release"), args, { cwd, env: releaseEnv(inputs, env) });
 }

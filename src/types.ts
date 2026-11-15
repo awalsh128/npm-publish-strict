@@ -77,6 +77,8 @@ export interface Context {
   commits: (baseline?: string) => CommitSummary[];
   /** Exchanges this job's GitHub OIDC token for an npm token, as `npm publish` does. */
   exchangeNpmToken: (name: string) => Promise<ExchangeResult>;
+  /** True when the GitHub repository is public, false when private, null when it can't be determined. */
+  repoIsPublic: () => Promise<boolean | null>;
   /** True/false when the registry answers, null when it can't be reached. */
   packageExists: (name: string) => Promise<boolean | null>;
 }

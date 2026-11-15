@@ -16,7 +16,9 @@ jobs:
       group: release-${{ github.ref }}
       cancel-in-progress: false
     permissions:
-      contents: write
+      contents: write # tags, GitHub Releases, release assets
+      id-token: write # Sigstore signing for the attestation
+      attestations: write # store the attestation
       issues: write
       pull-requests: write
     steps:
@@ -41,3 +43,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: npx semantic-release --branches main --plugins @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+
+      # A release tags HEAD, so a tag on HEAD means this run released. Bundle exactly what consumers
+      # run (the action manifest, compiled dist/, and the release config and lockfile it installs
+      # from) from the tagged commit, so the attestation covers the released bytes.
+      - name: Bundle release
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -n1 || true)"
+          if [[ -z "$tag" ]]; then
+            echo "No release in this run; nothing to attest."
+            exit 0
+          fi
+          bundle="npm-publish-strict-action-$tag.tar.gz"
+          git archive --format=tar.gz -o "$bundle" "$tag" \
+            action.yml dist release.config.mjs package.json package-lock.json LICENSE
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "path=$bundle" >> "$GITHUB_OUTPUT"
+
+      - name: Attest build provenance
+        if: ${{ steps.bundle.outputs.path != '' }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.bundle.outputs.path }}
+
+      - name: Attach bundle to the release
+        if: ${{ steps.bundle.outputs.path != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.bundle.outputs.tag }}
+          BUNDLE: ${{ steps.bundle.outputs.path }}
+        run: gh release upload "$TAG" "$BUNDLE" --clobber

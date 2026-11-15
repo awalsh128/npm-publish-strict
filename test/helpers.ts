@@ -33,6 +33,7 @@ export function makeContext(overrides: Partial<Context> = {}): Context {
     isAncestor: () => true,
     commits: () => [],
     exchangeNpmToken: () => Promise.resolve({ ok: true, status: 200, message: "OK" }),
+    repoIsPublic: () => Promise.resolve(true),
     packageExists: () => Promise.resolve(true),
     ...overrides,
   };

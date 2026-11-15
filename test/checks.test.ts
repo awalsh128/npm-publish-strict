@@ -133,6 +133,23 @@ describe("checks", () => {
   });
 });
 
+describe("public-repository", () => {
+  it("private repository on the release branch fails with navigation steps", async () => {
+    const ctx = makeContext({ repoIsPublic: () => Promise.resolve(false) });
+    const failure = (await runChecks(ctx)).find((r) => r.check.id === "public-repository")?.failures[0];
+    expect(failure?.manual[0]).toBe("Go to https://github.com/o/r/settings.");
+  });
+
+  it("private repository on the candidate branch passes", async () => {
+    const ctx = makeContext({ branch: "staging", repoIsPublic: () => Promise.resolve(false) });
+    expect(await failedIds(ctx)).toEqual([]);
+  });
+
+  it("unknown visibility passes", async () => {
+    expect(await failedIds(makeContext({ repoIsPublic: () => Promise.resolve(null) }))).toEqual([]);
+  });
+});
+
 describe("trusted-publisher", () => {
   it("rejected exchange fails with npm trust command and navigation steps", async () => {
     const ctx = makeContext({

@@ -82,6 +82,19 @@ export function buildContext(env: Context["env"] = process.env, cwd = process.cw
           return { hash, subject: rest.join("\t") };
         });
     },
+    async repoIsPublic() {
+      const token = env["INPUT_GITHUB-TOKEN"] ?? env.GITHUB_TOKEN;
+      if (!env.GITHUB_REPOSITORY) return null;
+      try {
+        const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}`, {
+          headers: { Accept: "application/vnd.github+json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        if (!res.ok) return null;
+        return ((await res.json()) as { private?: boolean }).private === false;
+      } catch {
+        return null;
+      }
+    },
     exchangeNpmToken: (name) => exchangeNpmToken(env, name),
     async packageExists(name) {
       try {
