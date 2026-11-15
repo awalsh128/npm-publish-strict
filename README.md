@@ -1,5 +1,7 @@
 # npm-publish-strict-action
 
+<p align="center"><img src="assets/logo.svg" alt="npm-publish-strict-action logo" width="96"></p>
+
 An opinionated NPM publish GitHub Action. It runs [semantic-release](https://semantic-release.gitbook.io)
 (Conventional Commits), builds API docs with typedoc, and publishes to npm with trusted publishing
 (OIDC, no token). It fails fast when the repository breaks the conventions from
