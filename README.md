@@ -1,4 +1,4 @@
-# npm-publish-strict-action
+# NPM Publish Strict GitHub Action
 
 <p align="center"><img src="assets/logo.svg" alt="npm-publish-strict-action logo" width="96"></p>
 
