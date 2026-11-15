@@ -25,14 +25,14 @@
     "@semantic-release/github": "^12.0.10",
     "@semantic-release/npm": "^13.1.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
-    "conventional-changelog-conventionalcommits": "^9.3.1",
+    "conventional-changelog-conventionalcommits": "^10.4.1",
     "semantic-release": "^25.0.9"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
-    "@types/node": "^24.0.0",
-    "typescript": "~5.9.0",
+    "@types/node": "^26.6.6",
+    "typescript": "~7.0.2",
     "vitest": "^5.1.0"
   }
 }
