@@ -1,5 +1,5 @@
 {
-  "name": "npm-publish-strict-action",
+  "name": "npm-publish-strict",
   "version": "0.0.0-semantically-released",
   "private": true,
   "description": "Opinionated NPM publish GitHub Action: semantic-release, typedoc, npm trusted publishing",
@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/awalsh128/npm-publish-strict-action.git"
+    "url": "https://github.com/awalsh128/npm-publish-strict.git"
   },
   "type": "module",
   "engines": { "node": ">=24" },

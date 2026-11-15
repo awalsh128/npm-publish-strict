@@ -99,7 +99,7 @@ jobs:
             echo "No release in this run; nothing to attest."
             exit 0
           fi
-          bundle="npm-publish-strict-action-$tag.tar.gz"
+          bundle="npm-publish-strict-$tag.tar.gz"
           git archive --format=tar.gz -o "$bundle" "$tag" \
             action.yml dist release.config.mjs package.json package-lock.json LICENSE
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
