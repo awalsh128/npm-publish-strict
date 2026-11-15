@@ -32,3 +32,9 @@ before starting one, and the `progress-notes` skill for work that spans sessions
 
 - `.out-of-scope/` lists ideas that were considered and rejected. Check it before proposing a
   feature.
+
+## Single Source For All AI Tools
+
+- Instructions: `AGENTS.md` only. `CLAUDE.md`, `.gemini/settings.json` and `.github/copilot-instructions.md` point to it; never add rules to them.
+- Skills: `.agents/skills/` only. `.claude/skills` and `.github/skills` are symlinks to it.
+- Roles: `.rulesync/subagents/` only. Every other role directory is generated output.
