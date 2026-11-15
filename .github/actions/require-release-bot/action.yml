@@ -1,0 +1,42 @@
+name: "Require release bot"
+description: >-
+  Fails with setup steps unless the release-bot GitHub App credentials are available to this job.
+
+inputs:
+  app-id:
+    description: "Value of the RELEASE_BOT_APP_ID variable."
+    required: true
+  private-key:
+    description: "Value of the RELEASE_BOT_PK secret."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check release-bot credentials
+      shell: bash
+      env:
+        APP_ID: ${{ inputs.app-id }}
+        PRIVATE_KEY: ${{ inputs.private-key }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        [[ -n "$APP_ID" && -n "$PRIVATE_KEY" ]] && exit 0
+        {
+          echo "## ❌ The release bot is not configured"
+          echo
+          echo "Tags and the \`main\` branch can only be updated by a GitHub App. This job has no credentials for it."
+          echo
+          echo "1. Go to https://github.com/settings/apps/new (or your organization's Settings > Developer settings > GitHub Apps > New GitHub App)."
+          echo "2. Name it, set any Homepage URL, untick Webhook > Active."
+          echo "3. Under Repository permissions set **Contents: Read and write** (Metadata: Read-only is added for you)."
+          echo "4. Create the app, then on its page note the **Client ID**, and under Private keys choose **Generate a private key**."
+          echo "5. In the app's sidebar choose Install App, install it on \`$REPO\` only."
+          echo "6. Add the Client ID as a **repository variable** named \`RELEASE_BOT_APP_ID\`: https://github.com/$REPO/settings/variables/actions (Settings > Secrets and variables > Actions > Variables > New repository variable)."
+          echo "7. Add the private key (the whole .pem file contents) as the secret \`RELEASE_BOT_PK\` in **both** environments: https://github.com/$REPO/settings/environments > \`release\` > Add environment secret, then the same in \`promote\`."
+          echo "8. Add the app as a bypass actor: https://github.com/$REPO/settings/rules, open \`main\` and \`release tags\`, then Bypass list > Add bypass > select the app > Always."
+          echo
+          echo "Full guide: docs/release-setup.md. Then re-run this workflow."
+        } | tee -a "$GITHUB_STEP_SUMMARY"
+        echo "::error::Release bot credentials are missing; see the job summary for setup steps."
+        exit 1

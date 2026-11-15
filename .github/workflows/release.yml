@@ -1,32 +1,60 @@
 name: Release
 
-# Tags and GitHub Releases are the action's version history; consumers pin to a tag or SHA.
+# Releases are always gated by CI:
+# - staging: ci.yml calls this after its jobs pass, releasing a candidate (e.g. 1.2.0-rc.1).
+# - main: promote.yml starts this after fast-forwarding main to a CI-passed staging commit,
+#   releasing an official version (e.g. 1.2.0).
+# - Manual runs first require a successful CI run for the commit.
+#
+# Credentials come from the 'release' environment (RELEASE_BOT_PK secret, RELEASE_BOT_APP_ID
+# variable), which only main and staging can use. The app pushes tags because the ruleset blocks
+# every other tag creation.
 on:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Run the release without tagging or publishing anything"
+        type: boolean
+        required: false
+        default: false
 
 permissions: {}
 
 jobs:
   release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
+    environment: release
     concurrency:
       group: release-${{ github.ref }}
       cancel-in-progress: false
     permissions:
-      contents: write # tags, GitHub Releases, release assets
+      actions: read # Read CI results on manual runs
+      contents: write # Release assets
       id-token: write # Sigstore signing for the attestation
-      attestations: write # store the attestation
-      issues: write
-      pull-requests: write
+      attestations: write # Store the attestation
+      issues: write # semantic-release comments
+      pull-requests: write # semantic-release comments
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # semantic-release needs the whole history
           persist-credentials: false
+
+      - name: Require release bot
+        uses: ./.github/actions/require-release-bot
+        with:
+          app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PK }}
+
+      - name: Require CI success
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: ./.github/actions/require-ci-success
+        with:
+          sha: ${{ github.sha }}
+          token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -34,15 +62,29 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Install scripts stay off: this job can mint GitHub tokens.
       - name: Install dependencies
         shell: bash
         run: npm ci --ignore-scripts
 
-      - name: Release
+      # GitHub rejects tag creation by GITHUB_TOKEN here (the tag ruleset), so the tag is pushed
+      # with the release-bot app token, which promote.yml also uses to update main.
+      - name: Create release-bot token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PK }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
+      - name: Publish with semantic-release
         shell: bash
         env:
+          GIT_CREDENTIALS: x-access-token:${{ steps.app-token.outputs.token }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: npx semantic-release --branches main --plugins @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/github
+          DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: npx semantic-release $DRY_RUN
 
       # A release tags HEAD, so a tag on HEAD means this run released. Bundle exactly what consumers
       # run (the action manifest, compiled dist/, and the release config and lockfile it installs

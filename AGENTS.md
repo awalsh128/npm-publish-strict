@@ -25,6 +25,14 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - Conventions enforced on consumers: placeholder `version` `0.0.0-semantically-released`, no `CHANGELOG.md`, no release commits, `main` official / `staging` rc, npm trusted publishing (OIDC), typedoc via a `docs:api` script, Conventional Commits (from `baseline-commit` when set).
 - ASK FIRST before changing action inputs/outputs; consumers depend on them.
 
+## Branches And Releases
+
+- `main` is the official release branch; `staging` is the release candidate branch.
+- MUST keep `main` an ancestor of `staging`: update `main` only by fast-forward through `promote.yml`, never by PR merge or a release commit.
+- Open PRs into `staging`. Direct pushes to `staging` and `main` are blocked by rulesets (`.github/rulesets/`).
+- MUST gate every release by CI: candidates release from `ci.yml` after all jobs pass; official releases come only from `promote.yml`.
+- Releases tag, create a GitHub Release, and attest the bundle; they never commit. Setup: `docs/release-setup.md`.
+
 ## Subagents
 
 You are the only agent that edits files. Subagents only read and report. Use the `delegate` skill
