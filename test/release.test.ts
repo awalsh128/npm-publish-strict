@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { readInputs } from "../src/release.js";
+import { actionRoot, readInputs } from "../src/release.js";
+
+describe("actionRoot", () => {
+  it("compiled file in dist returns the directory above dist", () => {
+    expect(actionRoot("file:///runner/_actions/o/a/v2/dist/release.js")).toBe("/runner/_actions/o/a/v2");
+  });
+});
 
 describe("readInputs", () => {
   it("empty environment returns defaults", () => {

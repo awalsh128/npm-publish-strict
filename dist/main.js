@@ -1,5 +1,5 @@
 import { buildContext } from "./context.js";
-import { readInputs, release } from "./release.js";
+import { actionRoot, readInputs, release } from "./release.js";
 import { report } from "./report.js";
 import { runChecks } from "./run.js";
 async function main() {
@@ -20,10 +20,7 @@ async function main() {
         console.log("Check mode: all preconditions pass. Nothing was released.");
         return;
     }
-    const actionPath = env.GITHUB_ACTION_PATH;
-    if (!actionPath)
-        throw new Error("GITHUB_ACTION_PATH is not set.");
-    release(inputs, env, actionPath, ctx.cwd);
+    release(inputs, env, actionRoot(), ctx.cwd);
 }
 main().catch((error) => {
     console.log(`::error::${error instanceof Error ? error.message : String(error)}`);

@@ -5,7 +5,7 @@ export function failureMarkdown(check, failure) {
     if (failure.details?.length)
         out.push(...failure.details.map((d) => `- ${d}`), "");
     if (failure.automated.length) {
-        out.push("**Automated:** run in a clone of the repository, then commit and push.", "");
+        out.push("**Automated:** run these on your machine (file changes need a clone of the repository, and then a commit and push).", "");
         for (const step of failure.automated)
             out.push(`${step.label}:`, "", "```bash", step.command, "```", "");
     }

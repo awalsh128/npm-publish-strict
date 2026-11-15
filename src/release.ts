@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type Env = Record<string, string | undefined>;
 
@@ -14,6 +15,15 @@ export interface Inputs {
   baselineCommit: string;
   gitCredentials: string;
   githubToken: string;
+}
+
+/**
+ * The directory holding action.yml, release.config.mjs and this action's package.json.
+ * GITHUB_ACTION_PATH is only set for composite actions, so find it from the compiled file
+ * (dist/release.js) instead.
+ */
+export function actionRoot(moduleUrl: string = import.meta.url): string {
+  return join(dirname(fileURLToPath(moduleUrl)), "..");
 }
 
 export function readInputs(env: Env): Inputs {
