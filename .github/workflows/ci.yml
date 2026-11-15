@@ -39,6 +39,68 @@ jobs:
         shell: bash
         run: npm run check:dist
 
+  # Runs this checkout of the action (uses: ./) inside a real workflow, against fixture repos built by
+  # test/make-fixture.ts. Release branch is set to a name nothing matches so these runs are
+  # release-candidate runs: no npm, OIDC or tag access is needed.
+  action-e2e:
+    runs-on: ubuntu-24.04
+    needs: build-and-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Build fixtures
+        id: fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          for scenario in healthy legacy-commits; do
+            baseline="$(node test/make-fixture.ts "$RUNNER_TEMP/$scenario" "$scenario" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME")"
+            echo "${scenario//-/_}_baseline=$baseline" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Healthy repository passes
+        uses: ./
+        with:
+          mode: check
+          working-directory: ${{ runner.temp }}/healthy
+          release-branch: none
+          candidate-branch: ${{ github.ref_name }}
+
+      - name: Legacy commits fail without a baseline
+        id: legacy
+        continue-on-error: true
+        uses: ./
+        with:
+          mode: check
+          working-directory: ${{ runner.temp }}/legacy-commits
+          release-branch: none
+          candidate-branch: ${{ github.ref_name }}
+
+      - name: Assert the failure named the right check
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.legacy.outcome }}
+          FAILED: ${{ steps.legacy.outputs.failed-checks }}
+        run: |
+          set -euo pipefail
+          [[ "$OUTCOME" == "failure" ]] || { echo "::error::expected the legacy run to fail, got $OUTCOME"; exit 1; }
+          [[ "$FAILED" == "commit-messages" ]] || { echo "::error::expected failed-checks=commit-messages, got '$FAILED'"; exit 1; }
+
+      - name: Legacy commits pass with a baseline
+        uses: ./
+        with:
+          mode: check
+          working-directory: ${{ runner.temp }}/legacy-commits
+          release-branch: none
+          candidate-branch: ${{ github.ref_name }}
+          baseline-commit: ${{ steps.fixtures.outputs.legacy_commits_baseline }}
+
   commitlint:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04

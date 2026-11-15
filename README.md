@@ -100,6 +100,7 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `mode` | `release` | `check` only verifies preconditions |
 | `dry-run` | `false` | Release without tagging or publishing |
 | `baseline-commit` | | Enforce and version only commits after this SHA |
+| `working-directory` | `.` | Directory of the package, for monorepos |
 | `docs-script` | `docs:api` | npm script running typedoc |
 | `docs-dir` | `docs/api` | Docs output directory |
 | `release-branch` | `main` | Official release branch |
@@ -107,12 +108,12 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `git-credentials` | | `user:token` for pushing tags (e.g. a GitHub App token) |
 | `github-token` | `github.token` | Token for the GitHub API |
 
-Outputs: `version` (empty when nothing was released) and `docs-dir`, for deploying Pages in a follow-up job.
+Outputs: `version` (empty when nothing was released), `docs-dir` (for deploying Pages in a follow-up job), and `failed-checks` (comma-separated ids of failed preconditions, empty when all pass).
 
 ## Development
 
 ```bash
 npm ci
-npm run typecheck && npm test
+npm run typecheck && npm test   # unit tests, then end-to-end runs of dist/ on fixture repos
 npm run build        # compiles src/ to dist/; commit dist/ with every src/ change
 ```

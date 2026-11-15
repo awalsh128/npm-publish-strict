@@ -25,6 +25,10 @@ inputs:
       history is ignored. Leave empty to enforce the whole history.
     required: false
     default: ""
+  working-directory:
+    description: "Directory of the package to release, relative to the workspace."
+    required: false
+    default: "."
   docs-script:
     description: "npm script that builds the API docs (typedoc). Must exist in the consumer package.json."
     required: false
@@ -53,6 +57,8 @@ inputs:
     default: ${{ github.token }}
 
 outputs:
+  failed-checks:
+    description: "Comma-separated ids of the preconditions that failed; empty when all pass."
   version:
     description: "Released version; empty when nothing was released."
   docs-dir:

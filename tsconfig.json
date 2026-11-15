@@ -12,6 +12,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "rootDir": ".",
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
   "include": ["src", "test"]

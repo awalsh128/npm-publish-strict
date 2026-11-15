@@ -18,7 +18,7 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - `action.yml`: Node 24 action; `main` is `dist/main.js`.
 - `src/`: TypeScript source. `checks.ts` holds the preconditions; `report.ts` renders fix steps; `release.ts` runs semantic-release.
 - `dist/`: compiled output, committed because the action runs from it. MUST run `npm run build` and commit `dist/` with every `src/` change; CI fails when it is stale.
-- `test/`: vitest. Name tests `<method> <conditions> <expected>`; no control flow in test bodies.
+- `test/`: vitest. `fixtures.ts` builds throwaway consumer repos; `e2e.test.ts` runs `dist/main.js` on them; the `action-e2e` CI job runs `uses: ./` on the same fixtures. Add a scenario there for every new precondition. Name tests `<method> <conditions> <expected>`; no control flow in test bodies.
 - `release.config.mjs`: semantic-release config applied to consumer repos (stays JavaScript; semantic-release loads it).
 - Keep runtime dependencies at zero in `src/`; Node built-ins only. semantic-release and its plugins are installed from this repo's lockfile at run time.
 - Every precondition MUST return a `Failure` with `problem`, `automated` commands, `manual` steps with navigation, and `links`. Never fail with a bare message.

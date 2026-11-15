@@ -23,6 +23,7 @@ export function readInputs(env) {
         releaseBranch: input("release-branch", "main"),
         candidateBranch: input("candidate-branch", "staging"),
         baselineCommit: input("baseline-commit"),
+        workingDirectory: input("working-directory", "."),
         githubToken,
         gitCredentials: input("git-credentials") || `x-access-token:${githubToken}`,
     };
