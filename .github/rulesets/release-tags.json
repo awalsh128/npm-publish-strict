@@ -3,9 +3,6 @@
   "target": "tag",
   "enforcement": "active",
   "conditions": { "ref_name": { "include": ["refs/tags/v*"], "exclude": [] } },
-  "bypass_actors": [
-    { "actor_id": 4278687, "actor_type": "Integration", "bypass_mode": "always" },
-    { "actor_id": 801323, "actor_type": "Integration", "bypass_mode": "always" }
-  ],
+  "bypass_actors": [{ "actor_id": 801323, "actor_type": "Integration", "bypass_mode": "always" }],
   "rules": [{ "type": "creation" }, { "type": "update" }, { "type": "deletion" }]
 }
