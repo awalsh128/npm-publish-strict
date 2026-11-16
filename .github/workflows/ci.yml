@@ -126,7 +126,7 @@ jobs:
 
   # Release candidates are only cut from staging commits that pass every CI job.
   release-candidate:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/staging' && vars.RELEASE_BOT_APP_ID != '' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/staging' }}
     needs: [build-and-test, action-e2e]
     permissions:
       actions: read
@@ -136,4 +136,3 @@ jobs:
       issues: write
       pull-requests: write
     uses: ./.github/workflows/release.yml
-    secrets: inherit # RELEASE_BOT_PK is not passed to reusable workflows otherwise
