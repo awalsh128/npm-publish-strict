@@ -156,7 +156,7 @@ Each step reports its own package, so a later step or job can use them through i
 | `version` | Released version |
 | `tag` | Git tag, as formatted by `tag-format` |
 | `package-name` | Name from the package's `package.json` |
-| `channel` | Prerelease id such as `rc`; empty for official releases |
+| `channel` | Candidate branch name (such as `staging`) for a candidate; empty for an official release |
 | `prerelease` | `true` for a release candidate, `false` for an official release |
 | `release-type` | `major`, `minor` or `patch` |
 | `git-head` | Commit SHA released |
