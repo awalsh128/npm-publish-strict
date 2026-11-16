@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -113,5 +113,38 @@ describe("release.config.mjs for a package in a repository with several", () => 
     const npm = text.findIndex((p) => p.includes("@semantic-release/npm"));
     expect(pin).toBeGreaterThan(-1);
     expect(pin).toBeLessThan(npm);
+  });
+});
+
+describe("release.config.mjs success step", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const releaseContext = (cwd: string) => ({
+    ...context,
+    cwd,
+    nextRelease: { ...context.nextRelease, channel: "rc", version: "1.1.0-rc.1", gitTag: "pkg-v1.1.0-rc.1", notes: "## Notes\n- a" },
+    releases: [{ pluginName: "@semantic-release/github", name: "GitHub release", url: "https://github.com/o/r/releases/tag/x" }],
+  });
+
+  async function outputsOf(releaseCtx: object): Promise<string> {
+    const file = join(mkdtempSync(join(tmpdir(), "out-")), "output");
+    writeFileSync(file, "");
+    const loaded = await loadConfig({ GITHUB_OUTPUT: file });
+    const success = (loaded.plugins as Plugin[]).find((p) => typeof p === "object" && "success" in p)!;
+    await success.success!({}, releaseCtx);
+    return readFileSync(file, "utf8");
+  }
+
+  it("success with a candidate release writes its tag, package, channel and notes", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "pkg-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@s/pkg" }));
+    const out = await outputsOf(releaseContext(dir));
+    expect(out).toContain("tag=pkg-v1.1.0-rc.1\n");
+    expect(out).toContain("package-name=@s/pkg\n");
+    expect(out).toContain("channel=rc\n");
+    expect(out).toContain("prerelease=true\n");
+    expect(out).toContain("published=false\n");
+    expect(out).toContain("release-url=https://github.com/o/r/releases/tag/x\n");
+    expect(out).toMatch(/release-notes<<EOF_[\w-]+\n## Notes\n- a\nEOF_/);
   });
 });
