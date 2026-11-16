@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "skills": {
+    "typescript-discriminated-unions": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-discriminated-unions/SKILL.md",
+      "computedHash": "a246ddf02c9335402f1f5fffc5aa17cebb6bca2726481a8f19cd5dfb80774c17",
+      "installMode": "copy"
+    },
+    "typescript-functions": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-functions/SKILL.md",
+      "computedHash": "b1afa1dc1cfdc6529f741475a4cafeb303f4a24f66d9ba3aa113567cc0e3dc37",
+      "installMode": "copy"
+    },
+    "typescript-naming": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-naming/SKILL.md",
+      "computedHash": "f02b71c6826b06ca0dfc05a91e1e244c6dabfa0d1407c8c69e3c717372466b8a",
+      "installMode": "copy"
+    },
+    "typescript-tests": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-tests/SKILL.md",
+      "computedHash": "465e047df09ecf8ec41edddcb3bfcdb17a3480688b148f416ce8173ea3054540",
+      "installMode": "copy"
+    },
+    "typescript-types": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-types/SKILL.md",
+      "computedHash": "db6287eaab44504cc5d6c2c6ed187ae86278edded72488363ca938597eb3304b",
+      "installMode": "copy"
+    },
+    "typescript-variables": {
+      "source": "mkosir/typescript-style-guide",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-variables/SKILL.md",
+      "computedHash": "f43818b36a0db6457b4cf06df4acb056e2d981f70d741b5e320297a0c0168cf8",
+      "installMode": "copy"
+    }
+  }
+}

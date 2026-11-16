@@ -33,6 +33,19 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - MUST gate every release by CI: candidates release from `ci.yml` after all jobs pass; official releases come only from `promote.yml`.
 - Releases tag, create a GitHub Release, and attest the bundle; they never commit. Setup: `docs/release-setup.md`.
 
+## TypeScript Style
+
+Before writing or reviewing TypeScript, load only the skill in `.agents/skills/` that the change touches:
+
+- Type definitions, `any`/`unknown`, assertions, `readonly`, constants: `typescript-types`.
+- Mutually exclusive fields or variant shapes: `typescript-discriminated-unions`.
+- Function signatures, arguments, return types, purity: `typescript-functions`.
+- `const`, enum alternatives, boolean flags, `null` vs `undefined`: `typescript-variables`.
+- New exports, identifiers, comments, TSDoc: `typescript-naming`.
+- Tests under `test/`: `typescript-tests`.
+
+This file wins over the skills: keep `interface` for object types and name tests `<method> <conditions> <expected>`, not `should ... when ...`. Don't rewrite existing code to match a skill.
+
 ## Subagents
 
 You are the only agent that edits files. Subagents only read and report. Use the `delegate` skill
