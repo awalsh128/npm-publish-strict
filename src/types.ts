@@ -43,6 +43,9 @@ export interface PackageJson {
   files?: string[];
   repository?: string | { url?: string };
   scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
 }
 
 /** A commit's full hash and subject line. */
@@ -54,8 +57,10 @@ export interface CommitSummary {
 /** Everything a check may look at; the network and process boundaries are injectable for tests. */
 export interface Context {
   env: Record<string, string | undefined>;
-  /** Directory of the consumer repository. */
+  /** Directory of the package to release. */
   cwd: string;
+  /** Root of the git repository, which holds the workflows and, for workspaces, the lockfile. Equals `cwd` for one package. */
+  root: string;
   branch: string | undefined;
   repository: string | undefined;
   releaseBranch: string;

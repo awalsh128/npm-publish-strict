@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { atLeast, checks, CONVENTIONAL_HEADER, findUnpinnedActions, repoSlug } from "../src/checks.js";
 import { runChecks } from "../src/run.js";
 import type { Context } from "../src/types.js";
+import { join } from "node:path";
 import { makeContext, makeRepo } from "./helpers.js";
 
 const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1";
@@ -208,5 +209,31 @@ describe("baseline", () => {
   it("every check has a unique id", () => {
     const ids = checks.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("checks in a workspace", () => {
+  /** A repository root with the lockfile and workflows, and a package below it. */
+  const workspace = (files: Record<string, string> = {}) => {
+    const root = makeRepo({ "packages/pkg/package.json": "{}", ...files });
+    return { root, cwd: join(root, "packages/pkg") };
+  };
+
+  it("lockfile at the repository root passes package-files", async () => {
+    const { root, cwd } = workspace();
+    expect(await failedIds(makeContext({ cwd, root }))).not.toContain("package-files");
+  });
+
+  it("no lockfile anywhere fails package-files and names it", async () => {
+    const root = makeRepo({ "packages/pkg/package.json": "{}" });
+    const ctx = makeContext({ cwd: join(root, "packages/pkg"), root: join(root, "packages/pkg") });
+    const failed = (await runChecks(ctx)).find((r) => r.check.id === "package-files");
+    expect(failed?.failures[0]?.problem).toBe("Missing: package-lock.json.");
+  });
+
+  it("an unpinned workflow at the repository root fails actions-pinned with a root-relative path", async () => {
+    const { root, cwd } = workspace({ ".github/workflows/ci.yml": "steps:\n  - uses: actions/checkout@v4\n" });
+    const result = (await runChecks(makeContext({ cwd, root }))).find((r) => r.check.id === "actions-pinned");
+    expect(result?.failures[0]?.details).toEqual([".github/workflows/ci.yml:2: actions/checkout@v4"]);
   });
 });

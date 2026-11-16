@@ -5,6 +5,7 @@ import type { Context } from "../src/types.js";
 
 /** A context for a healthy release on the release branch; override what a test is about. */
 export function makeContext(overrides: Partial<Context> = {}): Context {
+  const cwd = overrides.cwd ?? makeRepo({});
   return {
     env: {
       GITHUB_REF_NAME: "main",
@@ -12,7 +13,8 @@ export function makeContext(overrides: Partial<Context> = {}): Context {
       ACTIONS_ID_TOKEN_REQUEST_TOKEN: "t",
       GITHUB_WORKFLOW_REF: "o/r/.github/workflows/release.yml@refs/heads/main",
     },
-    cwd: makeRepo({}),
+    cwd,
+    root: cwd,
     branch: "main",
     repository: "o/r",
     releaseBranch: "main",

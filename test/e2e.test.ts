@@ -93,6 +93,17 @@ describe("dist/main.js in check mode", () => {
     expect(run.failedChecks).toBe("full-history");
   });
 
+  it("package below the repository root with the lockfile and workflows at the root exits 0", () => {
+    const run = runAction("workspace", { "INPUT_WORKING-DIRECTORY": "packages/pkg" });
+    expect(run.status).toBe(0);
+    expect(run.failedChecks).toBe("");
+  });
+
+  it("the same workspace pointed at the root package fails package-docs-script", () => {
+    const run = runAction("workspace");
+    expect(run.failedChecks).toContain("package-docs-script");
+  });
+
   it("unknown mode exits 1 with an error annotation", () => {
     const run = runAction("healthy", { INPUT_MODE: "bogus" });
     expect(run.status).toBe(1);

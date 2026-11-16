@@ -1,9 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Check, Context, Link, PackageJson } from "./types.js";
+import { PLACEHOLDER_VERSION } from "./placeholder.js";
+import { findLockfileDir } from "./workspace.js";
 
-/** The version package.json keeps; semantic-release writes the real one in CI. */
-export const PLACEHOLDER_VERSION = "0.0.0-semantically-released";
+export { PLACEHOLDER_VERSION };
 /** First npm version that supports trusted publishing. */
 export const MIN_NPM: readonly number[] = [11, 5, 1];
 
@@ -102,7 +103,11 @@ export const checks: readonly Check[] = [
     id: "package-files",
     title: "package.json and package-lock.json exist",
     run: (ctx) => {
-      const missing = ["package.json", "package-lock.json"].filter((f) => !existsSync(join(ctx.cwd, f)));
+      // Workspaces keep one package-lock.json at the repository root, above the package.
+      const missing = [
+        ...(existsSync(join(ctx.cwd, "package.json")) ? [] : ["package.json"]),
+        ...(findLockfileDir(ctx.cwd, ctx.root) ? [] : ["package-lock.json"]),
+      ];
       return missing.length === 0
         ? null
         : {
@@ -207,8 +212,9 @@ export const checks: readonly Check[] = [
     id: "actions-pinned",
     title: "GitHub Actions are pinned to commit SHAs",
     run: (ctx) => {
-      const unpinned = listWorkflowFiles(join(ctx.cwd, ".github")).flatMap((f) =>
-        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.cwd.length + 1)),
+      // Workflows live at the repository root, which is above the package in a workspace.
+      const unpinned = listWorkflowFiles(join(ctx.root, ".github")).flatMap((f) =>
+        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.root.length + 1)),
       );
       return unpinned.length === 0
         ? null
