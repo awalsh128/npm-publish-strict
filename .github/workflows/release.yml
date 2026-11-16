@@ -6,9 +6,9 @@ name: Release
 #   releasing an official version (e.g. 1.2.0).
 # - Manual runs first require a successful CI run for the commit.
 #
-# Credentials come from the 'release' environment (RELEASE_BOT_PK secret, RELEASE_BOT_APP_ID
-# variable), which only main and staging can use. The app pushes tags because the ruleset blocks
-# every other tag creation.
+# No stored secrets: the tag token comes from Octo STS under .github/chainguard/release.sts.yaml,
+# which only this workflow on main or staging matches. The 'release' environment (main and staging)
+# still scopes the job. The app pushes tags because the ruleset blocks every other tag creation.
 on:
   workflow_call:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
     permissions:
       actions: read # Read CI results on manual runs
       contents: write # Release assets
-      id-token: write # Sigstore signing for the attestation
+      id-token: write # Sigstore signing for the attestation, and the Octo STS token
       attestations: write # Store the attestation
       issues: write # semantic-release comments
       pull-requests: write # semantic-release comments
@@ -42,12 +42,6 @@ jobs:
         with:
           fetch-depth: 0 # semantic-release needs the whole history
           persist-credentials: false
-
-      - name: Require release bot
-        uses: ./.github/actions/require-release-bot
-        with:
-          app-id: ${{ vars.RELEASE_BOT_APP_ID }}
-          private-key: ${{ secrets.RELEASE_BOT_PK }}
 
       - name: Require CI success
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -68,20 +62,18 @@ jobs:
         run: npm ci --ignore-scripts
 
       # GitHub rejects tag creation by GITHUB_TOKEN here (the tag ruleset), so the tag is pushed
-      # with the release-bot app token, which promote.yml also uses to update main.
-      - name: Create release-bot token
-        id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      # with an Octo STS token, which promote.yml also uses (with its own policy) to update main.
+      - name: Create tag token
+        id: octo-sts
+        uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
         with:
-          client-id: ${{ vars.RELEASE_BOT_APP_ID }}
-          private-key: ${{ secrets.RELEASE_BOT_PK }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
+          scope: ${{ github.repository }}
+          identity: release
 
       - name: Publish with semantic-release
         shell: bash
         env:
-          GIT_CREDENTIALS: x-access-token:${{ steps.app-token.outputs.token }}
+          GIT_CREDENTIALS: x-access-token:${{ steps.octo-sts.outputs.token }}
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
         run: npx semantic-release $DRY_RUN
