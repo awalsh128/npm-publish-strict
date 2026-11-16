@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-export const SCENARIOS = ["healthy", "legacy-commits", "wrong-repository", "unpinned", "shallow"] as const;
+export const SCENARIOS = ["healthy", "legacy-commits", "wrong-repository", "unpinned", "shallow", "workspace"] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 
 const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1";
@@ -60,6 +60,7 @@ export interface Fixture {
  * - wrong-repository: package.json names a different repository.
  * - unpinned: a workflow uses an action by tag instead of by commit SHA.
  * - shallow: a depth-1 clone, so history is missing.
+ * - workspace: the package lives in packages/pkg; the lockfile and workflows are at the root.
  */
 export function createFixture(dir: string, scenario: Scenario, repository = "o/r", branch = "main"): Fixture {
   mkdirSync(dir, { recursive: true });
@@ -71,6 +72,20 @@ export function createFixture(dir: string, scenario: Scenario, repository = "o/r
     ".gitignore": "node_modules\n",
     ".github/workflows/ci.yml": `steps:\n  - uses: actions/checkout@${scenario === "unpinned" ? "v4" : SHA}\n`,
   };
+
+  if (scenario === "workspace") {
+    const root = {
+      "package.json": JSON.stringify({ name: "workspace-root", private: true, workspaces: ["packages/*"] }),
+      "package-lock.json": base["package-lock.json"],
+      ".gitignore": base[".gitignore"],
+      ".github/workflows/ci.yml": base[".github/workflows/ci.yml"],
+      "packages/pkg/package.json": base["package.json"],
+      "packages/pkg/index.js": base["index.js"],
+    };
+    commit(dir, "feat: initial", root);
+    commit(dir, "fix: second", { "packages/pkg/second.js": "export {};\n" });
+    return { dir, baseline: "" };
+  }
 
   if (scenario === "legacy-commits") {
     const baseline = commit(dir, "Legacy message", base);

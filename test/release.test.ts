@@ -15,6 +15,22 @@ describe("releaseEnv", () => {
     expect(env.NPM_CONFIG_PROVENANCE).toBeUndefined();
   });
 
+  it("package options reach the release config through the environment", () => {
+    const env = releaseEnv(
+      readInputs({
+        "INPUT_TAG-FORMAT": "pkg-v${version}",
+        "INPUT_COMMIT-PATHS": "packages/pkg, shared",
+        "INPUT_PIN-DEPENDENCIES": "@s/base=base-v${version}",
+      }),
+      { GITHUB_REF_NAME: "main" },
+    );
+    expect(env).toMatchObject({
+      TAG_FORMAT: "pkg-v${version}",
+      COMMIT_PATHS: "packages/pkg\nshared",
+      PIN_DEPENDENCIES: "@s/base=base-v${version}",
+    });
+  });
+
   it("dry run on the release branch does not publish", () => {
     expect(releaseEnv(readInputs({ "INPUT_DRY-RUN": "true" }), { GITHUB_REF_NAME: "main" }).NPM_PUBLISH).toBe("false");
   });
@@ -35,7 +51,14 @@ describe("readInputs", () => {
       releaseBranch: "main",
       candidateBranch: "staging",
       baselineCommit: "",
+      tagFormat: "v${version}",
+      commitPaths: [],
+      pinDependencies: "",
     });
+  });
+
+  it("malformed pin-dependencies throws", () => {
+    expect(() => readInputs({ "INPUT_PIN-DEPENDENCIES": "base" })).toThrow("must be 'name=tag-format'");
   });
 
   it("baseline, mode and dry-run are read from INPUT_ variables", () => {

@@ -4,6 +4,7 @@ import { buildContext } from "./context.js";
 import { actionRoot, readInputs, release } from "./release.js";
 import { report } from "./report.js";
 import { runChecks } from "./run.js";
+import { findLockfileDir } from "./workspace.js";
 async function main() {
     const env = process.env;
     const inputs = readInputs(env);
@@ -27,7 +28,7 @@ async function main() {
         console.log("Check mode: all preconditions pass. Nothing was released.");
         return;
     }
-    release(inputs, env, actionRoot(), ctx.cwd);
+    release(inputs, env, actionRoot(), ctx.cwd, findLockfileDir(ctx.cwd, ctx.root) ?? ctx.cwd);
 }
 main().catch((error) => {
     console.log(`::error::${error instanceof Error ? error.message : String(error)}`);

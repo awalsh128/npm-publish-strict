@@ -46,6 +46,7 @@ export function buildContext(env = process.env, cwd = process.cwd()) {
     return {
         env,
         cwd,
+        root: git(["rev-parse", "--show-toplevel"]) ?? cwd,
         branch: env.GITHUB_REF_NAME,
         repository: env.GITHUB_REPOSITORY,
         releaseBranch: env.RELEASE_BRANCH ?? "main",

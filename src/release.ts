@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parsePins, splitList } from "./workspace.js";
 
 type Env = Record<string, string | undefined>;
 
@@ -14,6 +15,9 @@ export interface Inputs {
   candidateBranch: string;
   baselineCommit: string;
   workingDirectory: string;
+  tagFormat: string;
+  commitPaths: string[];
+  pinDependencies: string;
   gitCredentials: string;
   githubToken: string;
 }
@@ -28,6 +32,8 @@ export function actionRoot(moduleUrl: string = import.meta.url): string {
 }
 
 export function readInputs(env: Env): Inputs {
+  // Fail on a malformed pin list before any check or install runs.
+  parsePins(env["INPUT_PIN-DEPENDENCIES"] ?? "");
   const input = (name: string, fallback = ""): string => (env[`INPUT_${name.toUpperCase()}`] ?? "").trim() || fallback;
   const mode = input("mode", "release");
   if (mode !== "release" && mode !== "check") throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
@@ -41,6 +47,9 @@ export function readInputs(env: Env): Inputs {
     candidateBranch: input("candidate-branch", "staging"),
     baselineCommit: input("baseline-commit"),
     workingDirectory: input("working-directory", "."),
+    tagFormat: input("tag-format", "v${version}"),
+    commitPaths: splitList(input("commit-paths")),
+    pinDependencies: input("pin-dependencies"),
     githubToken,
     gitCredentials: input("git-credentials") || `x-access-token:${githubToken}`,
   };
@@ -59,6 +68,9 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
     DOCS_SCRIPT: inputs.docsScript,
     DOCS_DIR: inputs.docsDir,
     BASELINE_COMMIT: inputs.baselineCommit,
+    TAG_FORMAT: inputs.tagFormat,
+    COMMIT_PATHS: inputs.commitPaths.join("\n"),
+    PIN_DEPENDENCIES: inputs.pinDependencies,
     BRANCH_RELEASE: inputs.releaseBranch,
     BRANCH_CANDIDATE: inputs.candidateBranch,
     // Only the official release branch publishes to npm; dry runs never do.
@@ -76,8 +88,9 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
  * install script must never run with them. semantic-release is not bundled into dist/ because it
  * loads its plugins dynamically, so it is installed from this action's own lockfile instead.
  */
-export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string): void {
-  run("npm", ["ci", "--ignore-scripts"], { cwd });
+export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string, installDir: string = cwd): void {
+  // Workspaces install from the directory holding the lockfile, which is above the package.
+  run("npm", ["ci", "--ignore-scripts"], { cwd: installDir });
   run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--prefix", actionPath], { cwd });
 
   const args = ["--extends", join(actionPath, "release.config.mjs")];

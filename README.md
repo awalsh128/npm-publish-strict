@@ -100,13 +100,49 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `mode` | `release` | `check` only verifies preconditions |
 | `dry-run` | `false` | Release without tagging or publishing |
 | `baseline-commit` | | Enforce and version only commits after this SHA |
-| `working-directory` | `.` | Directory of the package, for monorepos |
+| `working-directory` | `.` | Directory of the package, for repositories with several |
+| `tag-format` | `v${version}` | semantic-release tag format; give each package its own |
+| `commit-paths` | | Paths whose commits version the package; empty counts every commit |
+| `pin-dependencies` | | `name=tag-format` lines for internal dependencies to publish at real versions |
 | `docs-script` | `docs:api` | npm script running typedoc |
 | `docs-dir` | `docs/api` | Docs output directory |
 | `release-branch` | `main` | Official release branch |
 | `candidate-branch` | `staging` | Release candidate branch |
 | `git-credentials` | | `user:token` for pushing tags (e.g. a GitHub App token) |
 | `github-token` | `github.token` | Token for the GitHub API |
+
+### Several packages in one repository
+
+Run the action once per package, in dependency order, with its own `working-directory`, `tag-format`
+and `commit-paths`. Each package then versions independently from the commits that touch it, and is
+tagged and released on its own. The lockfile and workflows stay at the repository root.
+
+```yaml
+- name: Release the base package
+  id: base
+  uses: awalsh128/npm-publish-strict@<sha>
+  with:
+    working-directory: packages/base
+    tag-format: base-v${version}
+    commit-paths: packages/base
+
+- name: Release the adapter
+  uses: awalsh128/npm-publish-strict@<sha>
+  with:
+    working-directory: packages/adapter
+    tag-format: adapter-v${version}
+    commit-paths: packages/adapter
+    pin-dependencies: "@scope/base=base-v${version}"
+```
+
+- Keep each internal dependency at the placeholder version in the repository. `pin-dependencies`
+  replaces it, in the CI workspace only, with `^` and the latest released version found in the
+  dependency's tags (stable ones on the release branch, candidates included on the candidate branch).
+  The release fails, naming the dependency, when it has no release yet.
+- A package that already has `v*` tags keeps them by leaving `tag-format` at its default.
+- Install and `npm ci` run from the directory holding `package-lock.json`, found by walking up from
+  the package.
+- `version` is the package's version for that step; give each step an `id`.
 
 Outputs: `version` (empty when nothing was released), `docs-dir` (for deploying Pages in a follow-up job), and `failed-checks` (comma-separated ids of failed preconditions, empty when all pass).
 
