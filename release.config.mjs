@@ -1,6 +1,9 @@
 // Releases create a tag, a GitHub Release, and (official releases only) an npm package. They never
 // commit, so the release branch only ever fast-forwards and package.json keeps its placeholder version.
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
@@ -31,6 +34,37 @@ const visible = (context) => ({
 });
 const preset = { preset: "conventionalcommits" };
 
+// What a release surfaces to the workflow, as if the package had been released by its own action.
+// Multi-line values (the release notes) use the heredoc form, with a delimiter the notes can't contain.
+const writeOutputs = (outputs, file) => {
+  const lines = Object.entries(outputs).map(([name, value]) => {
+    const text = String(value ?? "");
+    if (!text.includes("\n")) return `${name}=${text}\n`;
+    const delimiter = `EOF_${randomUUID()}`;
+    return `${name}<<${delimiter}\n${text}\n${delimiter}\n`;
+  });
+  appendFileSync(file, lines.join(""));
+};
+const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
+  const name = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8")).name;
+  const urlOf = (pattern) => releases.find((r) => pattern.test(`${r.pluginName ?? ""} ${r.name ?? ""}`))?.url ?? "";
+  return {
+    released: "true",
+    version: nextRelease.version,
+    tag: nextRelease.gitTag,
+    "package-name": name,
+    channel: nextRelease.channel ?? "",
+    prerelease: /-/.test(nextRelease.version) ? "true" : "false",
+    "release-type": nextRelease.type,
+    "git-head": nextRelease.gitHead,
+    published: urlOf(/npm/i) ? "true" : "false",
+    "npm-url": urlOf(/npm/i),
+    "release-url": urlOf(/github/i),
+    "release-notes": nextRelease.notes ?? "",
+    "docs-dir": docsDir,
+  };
+};
+
 export default {
   tagFormat,
   branches: [
@@ -49,10 +83,14 @@ export default {
       {
         // Runs after the npm plugin so the docs carry the released version; a docs failure stops the
         // release before it is tagged.
-        prepareCmd: `npm run -s ${docsScript} -- --gitRevision v\${nextRelease.version}`,
-        successCmd: `if [ -n "$GITHUB_OUTPUT" ]; then echo "version=\${nextRelease.version}" >> "$GITHUB_OUTPUT"; echo "docs-dir=${docsDir}" >> "$GITHUB_OUTPUT"; fi`,
+        prepareCmd: `npm run -s ${docsScript} -- --gitRevision \${nextRelease.gitTag}`,
       },
     ],
     "@semantic-release/github",
+    {
+      success: (_config, context) => {
+        if (process.env.GITHUB_OUTPUT) writeOutputs(releaseOutputs(context), process.env.GITHUB_OUTPUT);
+      },
+    },
   ],
 };

@@ -144,7 +144,27 @@ tagged and released on its own. The lockfile and workflows stay at the repositor
   the package.
 - `version` is the package's version for that step; give each step an `id`.
 
-Outputs: `version` (empty when nothing was released), `docs-dir` (for deploying Pages in a follow-up job), and `failed-checks` (comma-separated ids of failed preconditions, empty when all pass).
+## Outputs
+
+Each step reports its own package, so a later step or job can use them through its `id`
+(`steps.base.outputs.version`). Release outputs are empty when nothing was released.
+
+| Output | Meaning |
+| --- | --- |
+| `failed-checks` | Comma-separated ids of failed preconditions; empty when all pass |
+| `released` | `true` when a release was cut |
+| `version` | Released version |
+| `tag` | Git tag, as formatted by `tag-format` |
+| `package-name` | Name from the package's `package.json` |
+| `channel` | Prerelease id such as `rc`; empty for official releases |
+| `prerelease` | `true` for a release candidate, `false` for an official release |
+| `release-type` | `major`, `minor` or `patch` |
+| `git-head` | Commit SHA released |
+| `published` | `true` when published to npm (official releases only) |
+| `npm-url` | npm page of the published version |
+| `release-url` | GitHub Release URL |
+| `release-notes` | Markdown release notes |
+| `docs-dir` | Built API docs directory, for deploying Pages in a follow-up job |
 
 ## Supply chain: attestations
 

@@ -79,8 +79,30 @@ inputs:
 outputs:
   failed-checks:
     description: "Comma-separated ids of the preconditions that failed; empty when all pass."
+  released:
+    description: "'true' when a release was cut; empty when nothing was released."
   version:
     description: "Released version; empty when nothing was released."
+  tag:
+    description: "Git tag of the release, formatted by tag-format; empty when nothing was released."
+  package-name:
+    description: "Name of the released package from its package.json; empty when nothing was released."
+  channel:
+    description: "Release channel (the prerelease id such as 'rc', empty for official releases)."
+  prerelease:
+    description: "'true' for a release candidate, 'false' for an official release; empty when nothing was released."
+  release-type:
+    description: "Version bump semantic-release chose (major, minor, patch); empty when nothing was released."
+  git-head:
+    description: "Commit SHA the release was cut from; empty when nothing was released."
+  published:
+    description: "'true' when the package was published to npm; 'false' for candidates; empty when nothing was released."
+  npm-url:
+    description: "URL of the published package version on npm; empty unless published."
+  release-url:
+    description: "URL of the GitHub Release; empty when nothing was released."
+  release-notes:
+    description: "Markdown release notes of the release; empty when nothing was released."
   docs-dir:
     description: "Directory holding the built API docs; empty when nothing was released."
 
