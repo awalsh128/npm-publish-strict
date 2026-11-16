@@ -88,7 +88,7 @@ outputs:
   package-name:
     description: "Name of the released package from its package.json; empty when nothing was released."
   channel:
-    description: "Release channel (the prerelease id such as 'rc', empty for official releases)."
+    description: "Release channel semantic-release assigns: the candidate branch's name (such as 'staging') for a candidate, empty for an official release."
   prerelease:
     description: "'true' for a release candidate, 'false' for an official release; empty when nothing was released."
   release-type:
