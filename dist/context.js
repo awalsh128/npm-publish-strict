@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Octokit } from "@octokit/rest";
-export const NPM_REGISTRY = "https://registry.npmjs.org";
+import { NPM_REGISTRY } from "./constants.js";
 function readPackage(cwd) {
     try {
         return JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));

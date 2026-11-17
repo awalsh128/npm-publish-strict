@@ -6,8 +6,8 @@ import { resolve as resolve2 } from "node:path";
 
 // src/context.ts
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync as readFileSync2 } from "node:fs";
+import { join as join2 } from "node:path";
 
 // node_modules/universal-user-agent/index.js
 function getUserAgent() {
@@ -4059,11 +4059,29 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
   }
 );
 
+// src/data.ts
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+var DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
+function readJson(name) {
+  return JSON.parse(readFileSync(join(DATA_DIR, name), "utf8"));
+}
+function renderTemplate(name, values = {}) {
+  const text = readFileSync(join(DATA_DIR, "templates", name), "utf8").replace(/\n+$/, "");
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => String(values[key] ?? ""));
+}
+
+// src/constants.ts
+var metadata = readJson("metadata.json");
+var NPM_REGISTRY = metadata.npmRegistry;
+var MIN_NPM = metadata.minNpm;
+var CONVENTIONAL_HEADER = new RegExp(metadata.conventionalHeader);
+
 // src/context.ts
-var NPM_REGISTRY = "https://registry.npmjs.org";
 function readPackage(cwd) {
   try {
-    return JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
+    return JSON.parse(readFileSync2(join2(cwd, "package.json"), "utf8"));
   } catch {
     return null;
   }
@@ -4159,12 +4177,12 @@ function buildContext(env = process.env, cwd = process.cwd()) {
 
 // src/release.ts
 import { spawnSync } from "node:child_process";
-import { dirname as dirname2, join as join3 } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname as dirname3, join as join4 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/workspace.ts
 import { existsSync } from "node:fs";
-import { dirname, join as join2, relative, resolve } from "node:path";
+import { dirname as dirname2, join as join3, relative, resolve } from "node:path";
 
 // src/placeholder.ts
 var PLACEHOLDER_VERSION = "0.0.0-semantically-released";
@@ -4175,9 +4193,9 @@ function findLockfileDir(cwd, root) {
   const top = resolve(root);
   let dir = resolve(cwd);
   while (!relative(top, dir).startsWith("..")) {
-    if (existsSync(join2(dir, "package-lock.json"))) return dir;
+    if (existsSync(join3(dir, "package-lock.json"))) return dir;
     if (dir === top) break;
-    dir = dirname(dir);
+    dir = dirname2(dir);
   }
   return null;
 }
@@ -4196,7 +4214,7 @@ function parsePins(value) {
 
 // src/release.ts
 function actionRoot(moduleUrl = import.meta.url) {
-  return join3(dirname2(fileURLToPath(moduleUrl)), "..");
+  return join4(dirname3(fileURLToPath2(moduleUrl)), "..");
 }
 function readInputs(env) {
   parsePins(env["INPUT_PIN-DEPENDENCIES"] ?? "");
@@ -4247,18 +4265,18 @@ function releaseEnv(inputs, env) {
 function release(inputs, env, actionPath, cwd, installDir = cwd) {
   run("npm", ["ci", "--ignore-scripts"], { cwd: installDir });
   run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--prefix", actionPath], { cwd });
-  const args = ["--extends", join3(actionPath, "release.config.mjs")];
+  const args = ["--extends", join4(actionPath, "release.config.mjs")];
   if (inputs.dryRun) args.push("--dry-run");
-  run(join3(actionPath, "node_modules", ".bin", "semantic-release"), args, { cwd, env: releaseEnv(inputs, env) });
+  run(join4(actionPath, "node_modules", ".bin", "semantic-release"), args, { cwd, env: releaseEnv(inputs, env) });
 }
 
 // src/report.ts
 import { appendFileSync } from "node:fs";
 function failureMarkdown(check, failure) {
-  const out = [`### \u274C ${check.title} (\`${check.id}\`)`, "", failure.problem, ""];
+  const out = [renderTemplate("failure-heading.md", { title: check.title, id: check.id }), "", failure.problem, ""];
   if (failure.details?.length) out.push(...failure.details.map((d) => `- ${d}`), "");
   if (failure.automated.length) {
-    out.push("**Automated:** run these on your machine (file changes need a clone of the repository, and then a commit and push).", "");
+    out.push(renderTemplate("automated-intro.md"), "");
     for (const step of failure.automated) out.push(`${step.label}:`, "", "```bash", step.command, "```", "");
   }
   if (failure.manual.length) {
@@ -4274,28 +4292,15 @@ function failureMarkdown(check, failure) {
   return out.join("\n");
 }
 function verifyMarkdown(env) {
-  return [
-    "## Verify the fixes",
-    "",
-    "Every item above is re-checked by the same code on each run, including the npm trusted publisher (an OIDC token exchange with npm). To confirm your fixes without releasing anything, run the action in check mode:",
-    "",
-    "```yaml",
-    "- uses: awalsh128/npm-publish-strict@<sha>",
-    "  with:",
-    "    mode: check",
-    "```",
-    "",
-    `Or re-run this workflow (Actions > ${env.GITHUB_WORKFLOW ?? "this workflow"} > Re-run failed jobs). Nothing is tagged or published until every check passes.`,
-    ""
-  ].join("\n");
+  return renderTemplate("verify.md", { workflow: env.GITHUB_WORKFLOW ?? "this workflow" }) + "\n";
 }
 function summaryMarkdown(env, results) {
   const failed = results.filter((r) => r.failures.length > 0);
   if (failed.length === 0) {
-    return [`## \u2705 All ${results.length} preconditions pass`, "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
+    return [renderTemplate("pass-heading.md", { count: results.length }), "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
   }
   const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
-  return [`## \u274C ${failed.length} precondition(s) failed`, "", ...sections, verifyMarkdown(env)].join("\n");
+  return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
 function report(ctx, results) {
   for (const r of results) console.log(`${r.failures.length ? "\u2718" : "\u2714"} ${r.check.title}`);
@@ -4313,32 +4318,13 @@ function report(ctx, results) {
 }
 
 // src/checks.ts
-import { existsSync as existsSync2, readdirSync, readFileSync as readFileSync2 } from "node:fs";
-import { join as join4 } from "node:path";
-var MIN_NPM = [11, 5, 1];
-var LINKS = {
-  trustedPublishers: { text: "npm: Trusted publishers", url: "https://docs.npmjs.com/trusted-publishers" },
-  npmTrust: { text: "npm trust command", url: "https://docs.npmjs.com/cli/commands/npm-trust" },
-  oidcPermissions: {
-    text: "GitHub: permissions for OIDC (id-token)",
-    url: "https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings"
-  },
-  pinning: {
-    text: "GitHub: pin actions to a full-length commit SHA",
-    url: "https://docs.github.com/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#using-third-party-actions"
-  },
-  checkout: { text: "actions/checkout: fetch all history", url: "https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches" },
-  setupNode: { text: "actions/setup-node", url: "https://github.com/actions/setup-node" },
-  packageJson: { text: "npm: package.json fields", url: "https://docs.npmjs.com/cli/configuring-npm/package-json" },
-  typedoc: { text: "TypeDoc", url: "https://typedoc.org/" },
-  provenance: { text: "npm: generating provenance statements", url: "https://docs.npmjs.com/generating-provenance-statements" },
-  conventionalCommits: { text: "Conventional Commits 1.0.0", url: "https://www.conventionalcommits.org/en/v1.0.0/" },
-  commitlint: { text: "commitlint: getting started", url: "https://commitlint.js.org/guides/getting-started.html" },
-  semanticRelease: {
-    text: "semantic-release FAQ: package.json version",
-    url: "https://semantic-release.gitbook.io/semantic-release/support/faq#why-is-the-package.jsons-version-not-updated-in-my-repository"
-  }
-};
+import { existsSync as existsSync2, readdirSync, readFileSync as readFileSync3 } from "node:fs";
+import { join as join5 } from "node:path";
+
+// src/links.ts
+var LINKS = readJson("links.json");
+
+// src/checks.ts
 function repoSlug(repository) {
   const url = typeof repository === "string" ? repository : repository?.url;
   if (!url) return null;
@@ -4367,9 +4353,8 @@ function findUnpinnedActions(text, file) {
 }
 function listWorkflowFiles(dir) {
   if (!existsSync2(dir)) return [];
-  return readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && /\.ya?ml$/.test(e.name)).map((e) => join4(e.parentPath, e.name));
+  return readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && /\.ya?ml$/.test(e.name)).map((e) => join5(e.parentPath, e.name));
 }
-var CONVENTIONAL_HEADER = /^(feat|fix|perf|docs|style|refactor|test|build|ci|chore|revert)(\([^)\r\n]+\))?!?: \S/;
 var publishes = (ctx) => ctx.branch === ctx.releaseBranch;
 var checks = [
   {
@@ -4393,7 +4378,7 @@ var checks = [
     title: "package.json and package-lock.json exist",
     run: (ctx) => {
       const missing = [
-        ...existsSync2(join4(ctx.cwd, "package.json")) ? [] : ["package.json"],
+        ...existsSync2(join5(ctx.cwd, "package.json")) ? [] : ["package.json"],
         ...findLockfileDir(ctx.cwd, ctx.root) ? [] : ["package-lock.json"]
       ];
       return missing.length === 0 ? null : {
@@ -4470,7 +4455,7 @@ var checks = [
   {
     id: "no-changelog",
     title: "No CHANGELOG.md",
-    run: (ctx) => !existsSync2(join4(ctx.cwd, "CHANGELOG.md")) ? null : {
+    run: (ctx) => !existsSync2(join5(ctx.cwd, "CHANGELOG.md")) ? null : {
       problem: "CHANGELOG.md exists. Releases never commit, so tags and GitHub Releases are the version history and the file would go stale.",
       automated: [{ label: "Remove it", command: "git rm CHANGELOG.md" }],
       manual: ["Commit the removal."],
@@ -4481,8 +4466,8 @@ var checks = [
     id: "actions-pinned",
     title: "GitHub Actions are pinned to commit SHAs",
     run: (ctx) => {
-      const unpinned = listWorkflowFiles(join4(ctx.root, ".github")).flatMap(
-        (f) => findUnpinnedActions(readFileSync2(f, "utf8"), f.slice(ctx.root.length + 1))
+      const unpinned = listWorkflowFiles(join5(ctx.root, ".github")).flatMap(
+        (f) => findUnpinnedActions(readFileSync3(f, "utf8"), f.slice(ctx.root.length + 1))
       );
       return unpinned.length === 0 ? null : {
         problem: `${unpinned.length} action reference(s) are not pinned to a full 40-character commit SHA.`,

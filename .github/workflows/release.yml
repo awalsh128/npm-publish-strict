@@ -93,7 +93,7 @@ jobs:
           fi
           bundle="npm-publish-strict-$tag.tar.gz"
           git archive --format=tar.gz -o "$bundle" "$tag" \
-            action.yml dist release.config.mjs package.json package-lock.json LICENSE
+            action.yml dist data release.config.mjs package.json package-lock.json LICENSE
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "path=$bundle" >> "$GITHUB_OUTPUT"
 

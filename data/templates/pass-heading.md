@@ -1,0 +1,1 @@
+## ✅ All {{count}} preconditions pass
