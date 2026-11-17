@@ -1,4 +1,4 @@
-import { appendFileSync } from "node:fs";
+import { setOutput } from "@actions/core";
 import { resolve } from "node:path";
 import { buildContext } from "./context.js";
 import { actionRoot, readInputs, release } from "./release.js";
@@ -25,8 +25,8 @@ async function main(): Promise<void> {
 
   const results = await runChecks(ctx);
   const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
-  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `failed-checks=${failedChecks.join(",")}\n`);
-  if (!report(ctx, results, log)) {
+  setOutput("failed-checks", failedChecks.join(","));
+  if (!(await report(ctx, results, log))) {
     process.exitCode = 1;
     return;
   }

@@ -1,12 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Check, Context, PackageJson } from "./types.js";
-import { CONVENTIONAL_HEADER, MIN_NPM } from "./constants.js";
+import { CONVENTIONAL_HEADER, MIN_NPM, PLACEHOLDER_VERSION } from "./constants.js";
 import { LINKS } from "./links.js";
-import { PLACEHOLDER_VERSION } from "./placeholder.js";
+import { atLeast } from "./semver.js";
 import { findLockfileDir } from "./workspace.js";
-
-export { PLACEHOLDER_VERSION };
 
 /** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
 export function repoSlug(repository: PackageJson["repository"]): string | null {
@@ -15,16 +13,6 @@ export function repoSlug(repository: PackageJson["repository"]): string | null {
   const match =
     /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
   return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
-}
-
-/** True when the dotted version `actual` is at least `min`. */
-export function atLeast(actual: string, min: readonly number[]): boolean {
-  const parts = actual.split(".").map((n) => parseInt(n, 10));
-  for (let i = 0; i < min.length; i++) {
-    const a = parts[i] ?? 0;
-    if (a !== min[i]) return a > (min[i] ?? 0);
-  }
-  return true;
 }
 
 /** The workflow file name from GITHUB_WORKFLOW_REF; defaults to release.yml. */
@@ -324,7 +312,7 @@ export const checks: readonly Check[] = [
       return version && atLeast(version, MIN_NPM)
         ? null
         : {
-            problem: `npm ${version ?? "(not found)"} is older than ${MIN_NPM.join(".")}, the first version with trusted publishing.`,
+            problem: `npm ${version ?? "(not found)"} is older than ${MIN_NPM}, the first version with trusted publishing.`,
             automated: [],
             manual: [
               "Add a setup step before this action (Node 24 ships a new enough npm):",

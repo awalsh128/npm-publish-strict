@@ -1,19 +1,21 @@
 // Releases create a tag, a GitHub Release, and (official releases only) an npm package. They never
 // commit, so the release branch only ever fast-forwards and package.json keeps its placeholder version.
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { appendFileSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { setOutput } from "@actions/core";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
+import { isPrerelease } from "./dist/semver.js";
 
+const { defaultTagFormat } = JSON.parse(readFileSync(new URL("data/metadata.json", import.meta.url), "utf8"));
 const docsScript = process.env.DOCS_SCRIPT ?? "docs:api";
 const docsDir = process.env.DOCS_DIR ?? "docs/api";
 const baseline = process.env.BASELINE_COMMIT?.trim();
 // A repository with several packages tags each with its own format and versions each from the
 // commits that touch its paths (COMMIT_PATHS, one per line; empty means every commit counts).
-const tagFormat = process.env.TAG_FORMAT?.trim() || "v${version}";
+const tagFormat = process.env.TAG_FORMAT?.trim() || defaultTagFormat;
 const commitPaths = (process.env.COMMIT_PATHS ?? "").split("\n").map((p) => p.trim().replace(/\/+$/, "")).filter(Boolean);
 const hasPins = Boolean(process.env.PIN_DEPENDENCIES?.trim());
 const touchesPaths = (hash) =>
@@ -39,15 +41,9 @@ const releaseRules = commitTypes.filter((t) => t.release).map(({ type, release }
 const preset = { preset: "conventionalcommits", presetConfig: { types: commitTypes.map(({ release, ...type }) => type) } };
 
 // What a release surfaces to the workflow, as if the package had been released by its own action.
-// Multi-line values (the release notes) use the heredoc form, with a delimiter the notes can't contain.
-const writeOutputs = (outputs, file) => {
-  const lines = Object.entries(outputs).map(([name, value]) => {
-    const text = String(value ?? "");
-    if (!text.includes("\n")) return `${name}=${text}\n`;
-    const delimiter = `EOF_${randomUUID()}`;
-    return `${name}<<${delimiter}\n${text}\n${delimiter}\n`;
-  });
-  appendFileSync(file, lines.join(""));
+// core.setOutput writes the GITHUB_OUTPUT file protocol, including multi-line values like the notes.
+const writeOutputs = (outputs) => {
+  for (const [name, value] of Object.entries(outputs)) setOutput(name, String(value ?? ""));
 };
 const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
   const name = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8")).name;
@@ -58,7 +54,7 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
     tag: nextRelease.gitTag,
     "package-name": name,
     channel: nextRelease.channel ?? "",
-    prerelease: /-/.test(nextRelease.version) ? "true" : "false",
+    prerelease: isPrerelease(nextRelease.version) ? "true" : "false",
     "release-type": nextRelease.type,
     "git-head": nextRelease.gitHead,
     published: urlOf(/npm/i) ? "true" : "false",
@@ -93,7 +89,7 @@ export default {
     "@semantic-release/github",
     {
       success: (_config, context) => {
-        if (process.env.GITHUB_OUTPUT) writeOutputs(releaseOutputs(context), process.env.GITHUB_OUTPUT);
+        if (process.env.GITHUB_OUTPUT) writeOutputs(releaseOutputs(context));
       },
     },
   ],

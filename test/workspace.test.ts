@@ -1,11 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PLACEHOLDER_VERSION } from "../src/checks.js";
+import { PLACEHOLDER_VERSION } from "../src/constants.js";
 import {
-  compareVersions,
   findLockfileDir,
-  latestVersion,
   parsePins,
   pinDependencies,
   splitList,
@@ -57,43 +55,6 @@ describe("parsePins", () => {
 
   it.each([["base"], ["base=base-v"], ["=v${version}"], ["a=b=v${version}"]])("%s throws", (line) => {
     expect(() => parsePins(line)).toThrow("must be 'name=tag-format'");
-  });
-});
-
-describe("compareVersions", () => {
-  it.each([
-    ["1.2.3", "1.2.4", -1],
-    ["1.10.0", "1.9.0", 1],
-    ["2.0.0", "2.0.0", 0],
-    ["1.0.0-rc.1", "1.0.0", -1],
-    ["1.0.0-rc.2", "1.0.0-rc.10", -1],
-    ["1.0.0-rc.1", "1.0.0-rc.1.1", -1],
-  ])("%s against %s has sign %s", (a, b, sign) => {
-    expect(Math.sign(compareVersions(a, b))).toBe(sign);
-  });
-
-  it("a non-version throws", () => {
-    expect(() => compareVersions("x", "1.0.0")).toThrow("Not a version: 'x'");
-  });
-});
-
-describe("latestVersion", () => {
-  const tags = ["base-v1.0.0", "base-v1.2.0", "base-v1.10.0", "base-v2.0.0-rc.1", "other-v9.0.0", "base-vnext", "v3.0.0"];
-
-  it("stable only returns the highest release", () => {
-    expect(latestVersion(tags, "base-v", true)).toBe("1.10.0");
-  });
-
-  it("candidates allowed returns the highest including prereleases", () => {
-    expect(latestVersion(tags, "base-v", false)).toBe("2.0.0-rc.1");
-  });
-
-  it("the shim's plain v prefix does not match scoped tags", () => {
-    expect(latestVersion(tags, "v", true)).toBe("3.0.0");
-  });
-
-  it("no matching tag returns null", () => {
-    expect(latestVersion(tags, "none-v", true)).toBeNull();
   });
 });
 

@@ -1,4 +1,6 @@
 {
   "npmRegistry": "https://registry.npmjs.org",
-  "minNpm": [11, 5, 1]
+  "minNpm": "11.5.1",
+  "placeholderVersion": "0.0.0-semantically-released",
+  "defaultTagFormat": "v${version}"
 }

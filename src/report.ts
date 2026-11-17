@@ -1,4 +1,4 @@
-import { appendFileSync } from "node:fs";
+import { summary } from "@actions/core";
 import { renderTemplate } from "./data.js";
 import { createLogger, type Log } from "./logger.js";
 import type { Check, CheckResult, Context, Failure } from "./types.js";
@@ -40,7 +40,7 @@ export function summaryMarkdown(env: Context["env"], results: readonly CheckResu
 }
 
 /** Logs results with annotations, and appends them to the job summary. Returns true when all pass. */
-export function report(ctx: Pick<Context, "env">, results: readonly CheckResult[], log: Log = createLogger()): boolean {
+export async function report(ctx: Pick<Context, "env">, results: readonly CheckResult[], log: Log = createLogger()): Promise<boolean> {
   for (const r of results) log.info(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
   for (const r of results) {
     for (const failure of r.failures) {
@@ -50,7 +50,6 @@ export function report(ctx: Pick<Context, "env">, results: readonly CheckResult[
       log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
     }
   }
-  const summaryFile = ctx.env.GITHUB_STEP_SUMMARY;
-  if (summaryFile) appendFileSync(summaryFile, summaryMarkdown(ctx.env, results) + "\n");
+  if (process.env.GITHUB_STEP_SUMMARY) await summary.addRaw(summaryMarkdown(ctx.env, results), true).write();
   return results.every((r) => r.failures.length === 0);
 }
