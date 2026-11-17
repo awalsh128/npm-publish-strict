@@ -56,12 +56,8 @@ export function buildContext(env = process.env, cwd = process.cwd()) {
         baseline: env.BASELINE_COMMIT?.trim() || undefined,
         pkg: readPackage(cwd),
         shallow() {
-            try {
-                return execFileSync("git", ["rev-parse", "--is-shallow-repository"], { cwd, encoding: "utf8" }).trim() === "true";
-            }
-            catch {
-                return null;
-            }
+            const out = git(["rev-parse", "--is-shallow-repository"]);
+            return out === null ? null : out === "true";
         },
         npmVersion() {
             try {
