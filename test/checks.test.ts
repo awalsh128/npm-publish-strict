@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, checks, findUnpinnedActions, repoSlug } from "../src/checks.js";
+import { checks, findUnpinnedActions, repoSlug } from "../src/checks.js";
 import { COMMIT_TYPES, CONVENTIONAL_HEADER } from "../src/constants.js";
 import { runChecks } from "../src/run.js";
 import type { Context } from "../src/types.js";
@@ -29,20 +29,6 @@ describe("repoSlug", () => {
 
   it.each([[undefined], ["https://gitlab.com/o/r"]])("%s returns null", (value) => {
     expect(repoSlug(value)).toBeNull();
-  });
-});
-
-describe("atLeast", () => {
-  it.each([
-    ["11.5.1", true],
-    ["11.19.1", true],
-    ["12.0.0", true],
-    ["11.5.0", false],
-    ["10.9.2", false],
-    ["11.5.1-beta.1", false],
-    ["not a version", false],
-  ])("%s against 11.5.1 returns %s", (version, expected) => {
-    expect(atLeast(version, "11.5.1")).toBe(expected);
   });
 });
 

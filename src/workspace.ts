@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import semver from "semver";
 import { PLACEHOLDER_VERSION } from "./placeholder.js";
+import { latestVersion } from "./semver.js";
 import type { PackageJson } from "./types.js";
 
 /** The text semantic-release replaces with the version in a tag format. */
@@ -50,18 +50,6 @@ export function parsePins(value: string): PinSpec[] {
     }
     return { name, tagPrefix: format.slice(0, -VERSION_VARIABLE.length) };
   });
-}
-
-/**
- * The highest version among `tags` of the form `<tagPrefix><version>`, or null when there is none.
- * Candidates (prereleases) count only when `stableOnly` is false.
- */
-export function latestVersion(tags: readonly string[], tagPrefix: string, stableOnly: boolean): string | null {
-  const versions = tags
-    .filter((tag) => tag.startsWith(tagPrefix))
-    .map((tag) => tag.slice(tagPrefix.length))
-    .filter((version) => semver.valid(version) === version && !(stableOnly && semver.prerelease(version)));
-  return versions.sort(semver.compare).at(-1) ?? null;
 }
 
 const DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"] as const;

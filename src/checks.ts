@@ -1,10 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import semver from "semver";
 import type { Check, Context, PackageJson } from "./types.js";
 import { CONVENTIONAL_HEADER, MIN_NPM } from "./constants.js";
 import { LINKS } from "./links.js";
 import { PLACEHOLDER_VERSION } from "./placeholder.js";
+import { atLeast } from "./semver.js";
 import { findLockfileDir } from "./workspace.js";
 
 export { PLACEHOLDER_VERSION };
@@ -16,11 +16,6 @@ export function repoSlug(repository: PackageJson["repository"]): string | null {
   const match =
     /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
   return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
-}
-
-/** True when the version `actual` is at least `min`. */
-export function atLeast(actual: string, min: string): boolean {
-  return semver.valid(actual) !== null && semver.gte(actual, min);
 }
 
 /** The workflow file name from GITHUB_WORKFLOW_REF; defaults to release.yml. */

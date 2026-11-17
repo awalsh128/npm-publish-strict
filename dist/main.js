@@ -42203,12 +42203,17 @@ import { dirname as dirname3, join as join4 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/workspace.ts
-var import_semver = __toESM(require_semver2(), 1);
 import { existsSync } from "node:fs";
 import { dirname as dirname2, join as join3, relative, resolve } from "node:path";
 
 // src/placeholder.ts
 var PLACEHOLDER_VERSION = "0.0.0-semantically-released";
+
+// src/semver.ts
+var import_semver = __toESM(require_semver2(), 1);
+function atLeast(actual, min) {
+  return import_semver.default.valid(actual) !== null && import_semver.default.gte(actual, min);
+}
 
 // src/workspace.ts
 var VERSION_VARIABLE = "${version}";
@@ -42344,7 +42349,6 @@ async function report(ctx, results, log = createLogger2()) {
 }
 
 // src/checks.ts
-var import_semver2 = __toESM(require_semver2(), 1);
 import { existsSync as existsSync2, readdirSync, readFileSync as readFileSync3 } from "node:fs";
 import { join as join5 } from "node:path";
 
@@ -42357,9 +42361,6 @@ function repoSlug(repository) {
   if (!url) return null;
   const match = /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
   return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
-}
-function atLeast(actual, min) {
-  return import_semver2.default.valid(actual) !== null && import_semver2.default.gte(actual, min);
 }
 function workflowFile(env) {
   return /\.github\/workflows\/([^@]+)@/.exec(env.GITHUB_WORKFLOW_REF ?? "")?.[1] ?? "release.yml";

@@ -2247,11 +2247,15 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// src/workspace.ts
-var import_semver = __toESM(require_semver2(), 1);
-
 // src/placeholder.ts
 var PLACEHOLDER_VERSION = "0.0.0-semantically-released";
+
+// src/semver.ts
+var import_semver = __toESM(require_semver2(), 1);
+function latestVersion(tags, tagPrefix, stableOnly) {
+  const versions = tags.filter((tag) => tag.startsWith(tagPrefix)).map((tag) => tag.slice(tagPrefix.length)).filter((version) => import_semver.default.valid(version) === version && !(stableOnly && import_semver.default.prerelease(version)));
+  return versions.sort(import_semver.default.compare).at(-1) ?? null;
+}
 
 // src/workspace.ts
 var VERSION_VARIABLE = "${version}";
@@ -2266,10 +2270,6 @@ function parsePins(value) {
     }
     return { name, tagPrefix: format.slice(0, -VERSION_VARIABLE.length) };
   });
-}
-function latestVersion(tags, tagPrefix, stableOnly) {
-  const versions = tags.filter((tag) => tag.startsWith(tagPrefix)).map((tag) => tag.slice(tagPrefix.length)).filter((version) => import_semver.default.valid(version) === version && !(stableOnly && import_semver.default.prerelease(version)));
-  return versions.sort(import_semver.default.compare).at(-1) ?? null;
 }
 var DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"];
 function pinDependencies(pkg, pins2, tags, stableOnly) {
