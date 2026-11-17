@@ -43,6 +43,17 @@ describe("release.config.mjs", () => {
     expect(await plugin("analyzeCommits")({}, context)).toBe("minor");
   });
 
+  it.each([
+    ["feat", "minor"],
+    ["fix", "patch"],
+    ["perf", "patch"],
+    ["docs", null],
+    ["chore", null],
+  ])("analyzeCommits with a %s commit returns %s", async (type, release) => {
+    const commits = [commit("a".repeat(40), `${type}: do a thing`)];
+    expect(await plugin("analyzeCommits")({}, { ...context, commits })).toBe(release);
+  });
+
   it("generateNotes with feat and fix commits renders their sections", async () => {
     const notes = await plugin("generateNotes")({}, context);
     expect(notes).toContain("### Features");
