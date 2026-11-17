@@ -30,7 +30,7 @@ describe("releaseEnv", () => {
 
 describe("actionRoot", () => {
   it("compiled file in dist returns the directory above dist", () => {
-    expect(actionRoot("file:///runner/_actions/o/a/v2/dist/release.js")).toBe("/runner/_actions/o/a/v2");
+    expect(actionRoot("file:///runner/_actions/o/a/v2/dist/main.js")).toBe("/runner/_actions/o/a/v2");
   });
 });
 

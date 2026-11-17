@@ -17,7 +17,7 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 
 - `action.yml`: Node 24 action; `main` is `dist/main.js`.
 - `src/`: TypeScript source. `checks.ts` holds the preconditions; `report.ts` renders fix steps; `release.ts` runs semantic-release.
-- `dist/`: compiled output, committed because the action runs from it. MUST run `npm run build` and commit `dist/` with every `src/` change; CI fails when it is stale.
+- `dist/`: `main.js` and `semver.js`, bundled by esbuild (tsc only typechecks), committed because the action runs from it. MUST run `npm run build` and commit `dist/` with every `src/` change; CI fails when it is stale.
 - `test/`: vitest. `fixtures.ts` builds throwaway consumer repos; `e2e.test.ts` runs `dist/main.js` on them; the `action-e2e` CI job moves each fixture into the workspace and runs the action from `./.action-under-test` on it. Add a scenario there for every new precondition. Name tests `<method> <conditions> <expected>`; no control flow in test bodies.
 - `release.config.mjs`: semantic-release config applied to consumer repos (stays JavaScript; semantic-release loads it).
 - Keep runtime `dependencies` at zero in `src/`; Node built-ins plus `@octokit/rest` for GitHub API calls and `@awalsh128/winston-github-actions` for logging (`src/logger.ts`), `semver` for version comparison, and `@actions/core` for outputs and the OIDC token. Octokit, the logger and `semver` are devDependencies that `esbuild.config.mjs` bundles into `dist/main.js` and `dist/semver.js`, so the action runs before any install. semantic-release and its plugins are installed from this repo's lockfile at run time.

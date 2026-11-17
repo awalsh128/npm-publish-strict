@@ -1,6 +1,10 @@
-// Bundles the action's entry points after tsc has emitted dist/: main.js runs before any install,
+// The only producer of dist/ (tsc only typechecks): main.js runs before any install,
 // and semver.js is loaded on its own by release.config.mjs, so each carries its dependencies.
+import { rmSync } from "node:fs";
 import { build } from "esbuild";
+
+// Start empty so a removed entry point can't leave a stale bundle behind.
+rmSync("dist", { recursive: true, force: true });
 
 await build({
   entryPoints: ["src/main.ts", "src/semver.ts"],

@@ -14,7 +14,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node esbuild.config.mjs",
+    "build": "npm run typecheck && node esbuild.config.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && vitest run",
     "fixture": "node test/make-fixture.ts",

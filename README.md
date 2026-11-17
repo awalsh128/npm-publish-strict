@@ -149,5 +149,5 @@ outputs are empty when nothing was released.
 ```bash
 npm ci
 npm run typecheck && npm test   # unit tests, then end-to-end runs of dist/ on fixture repos
-npm run build        # compiles src/ to dist/; commit dist/ with every src/ change
+npm run build        # typechecks, then bundles src/ into dist/ with esbuild; commit dist/ with every src/ change
 ```

@@ -16,7 +16,7 @@ export interface Inputs {
 /**
  * The directory holding action.yml, release.config.mjs and this action's package.json.
  * GITHUB_ACTION_PATH is only set for composite actions, so find it from the compiled file
- * (dist/release.js) instead.
+ * (dist/main.js, which bundles this module) instead.
  */
 export function actionRoot(moduleUrl: string = import.meta.url): string {
   return join(dirname(fileURLToPath(moduleUrl)), "..");
