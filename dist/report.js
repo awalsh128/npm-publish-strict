@@ -1,4 +1,4 @@
-import { appendFileSync } from "node:fs";
+import { summary } from "@actions/core";
 import { renderTemplate } from "./data.js";
 import { createLogger } from "./logger.js";
 /** Markdown for one failed check. */
@@ -40,7 +40,7 @@ export function summaryMarkdown(env, results) {
     return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
 /** Logs results with annotations, and appends them to the job summary. Returns true when all pass. */
-export function report(ctx, results, log = createLogger()) {
+export async function report(ctx, results, log = createLogger()) {
     for (const r of results)
         log.info(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
     for (const r of results) {
@@ -51,8 +51,7 @@ export function report(ctx, results, log = createLogger()) {
             log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
         }
     }
-    const summaryFile = ctx.env.GITHUB_STEP_SUMMARY;
-    if (summaryFile)
-        appendFileSync(summaryFile, summaryMarkdown(ctx.env, results) + "\n");
+    if (process.env.GITHUB_STEP_SUMMARY)
+        await summary.addRaw(summaryMarkdown(ctx.env, results), true).write();
     return results.every((r) => r.failures.length === 0);
 }

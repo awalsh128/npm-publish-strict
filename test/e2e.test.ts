@@ -24,6 +24,7 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
   const outputFile = join(root, "output");
   writeFileSync(outputFile, ""); // the runner creates GITHUB_OUTPUT before the step starts
   const summaryFile = join(root, "summary.md");
+  writeFileSync(summaryFile, "");
   const result = spawnSync("node", [MAIN], {
     cwd: fixture.dir,
     encoding: "utf8",

@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   const results = await runChecks(ctx);
   const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
   setOutput("failed-checks", failedChecks.join(","));
-  if (!report(ctx, results, log)) {
+  if (!(await report(ctx, results, log))) {
     process.exitCode = 1;
     return;
   }

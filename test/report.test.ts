@@ -1,7 +1,7 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { failureMarkdown, report, summaryMarkdown } from "../src/report.js";
 import type { Check, CheckResult, Failure } from "../src/types.js";
 
@@ -52,15 +52,19 @@ describe("report", () => {
     };
   };
 
-  it("failure returns false, annotates, and writes the job summary", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("failure returns false, annotates, and writes the job summary", async () => {
     const file = join(mkdtempSync(join(tmpdir(), "sum-")), "summary.md");
+    writeFileSync(file, "");
+    vi.stubEnv("GITHUB_STEP_SUMMARY", file);
     const { log, errors } = fakeLog();
-    expect(report({ env: { GITHUB_STEP_SUMMARY: file } }, results, log)).toBe(false);
+    expect(await report({ env: { GITHUB_STEP_SUMMARY: file } }, results, log)).toBe(false);
     expect(errors).toEqual(["Demo check (demo): Something is wrong."]);
     expect(readFileSync(file, "utf8")).toContain("Verify the fixes");
   });
 
-  it("success returns true", () => {
-    expect(report({ env: {} }, [{ check, failures: [] }], fakeLog().log)).toBe(true);
+  it("success returns true", async () => {
+    expect(await report({ env: {} }, [{ check, failures: [] }], fakeLog().log)).toBe(true);
   });
 });

@@ -38020,7 +38020,7 @@ var require_dist2 = __commonJS({
 });
 
 // src/main.ts
-var import_core3 = __toESM(require_core(), 1);
+var import_core4 = __toESM(require_core(), 1);
 import { resolve as resolve2 } from "node:path";
 
 // src/context.ts
@@ -42298,7 +42298,7 @@ var import_winston_github_actions = __toESM(require_dist2(), 1);
 var createLogger2 = () => new import_winston_github_actions.ActionsLogger();
 
 // src/report.ts
-import { appendFileSync } from "node:fs";
+var import_core3 = __toESM(require_core(), 1);
 function failureMarkdown(check, failure) {
   const out = [renderTemplate("failure-heading.md", { title: check.title, id: check.id }), "", failure.problem, ""];
   if (failure.details?.length) out.push(...failure.details.map((d) => `- ${d}`), "");
@@ -42329,7 +42329,7 @@ function summaryMarkdown(env, results) {
   const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
   return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
-function report(ctx, results, log = createLogger2()) {
+async function report(ctx, results, log = createLogger2()) {
   for (const r of results) log.info(`${r.failures.length ? "\u2718" : "\u2714"} ${r.check.title}`);
   for (const r of results) {
     for (const failure of r.failures) {
@@ -42339,8 +42339,7 @@ function report(ctx, results, log = createLogger2()) {
       log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
     }
   }
-  const summaryFile = ctx.env.GITHUB_STEP_SUMMARY;
-  if (summaryFile) appendFileSync(summaryFile, summaryMarkdown(ctx.env, results) + "\n");
+  if (process.env.GITHUB_STEP_SUMMARY) await import_core3.summary.addRaw(summaryMarkdown(ctx.env, results), true).write();
   return results.every((r) => r.failures.length === 0);
 }
 
@@ -42692,8 +42691,8 @@ async function main() {
   );
   const results = await runChecks(ctx);
   const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
-  (0, import_core3.setOutput)("failed-checks", failedChecks.join(","));
-  if (!report(ctx, results, log)) {
+  (0, import_core4.setOutput)("failed-checks", failedChecks.join(","));
+  if (!await report(ctx, results, log)) {
     process.exitCode = 1;
     return;
   }
