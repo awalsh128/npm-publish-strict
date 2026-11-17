@@ -1,5 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { renderTemplate } from "./data.js";
+import { createLogger } from "./logger.js";
 /** Markdown for one failed check. */
 export function failureMarkdown(check, failure) {
     const out = [renderTemplate("failure-heading.md", { title: check.title, id: check.id }), "", failure.problem, ""];
@@ -38,16 +39,16 @@ export function summaryMarkdown(env, results) {
     const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
     return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
-/** Prints results to the job log with annotations, and appends them to the job summary. Returns true when all pass. */
-export function report(ctx, results) {
+/** Logs results with annotations, and appends them to the job summary. Returns true when all pass. */
+export function report(ctx, results, log = createLogger()) {
     for (const r of results)
-        console.log(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
+        log.info(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
     for (const r of results) {
         for (const failure of r.failures) {
-            console.log(`::group::How to fix: ${r.check.title}`);
-            console.log(failureMarkdown(r.check, failure));
-            console.log("::endgroup::");
-            console.log(`::error title=${r.check.title} (${r.check.id})::${failure.problem}`);
+            const group = log.group(`How to fix: ${r.check.title}`);
+            log.info(failureMarkdown(r.check, failure));
+            group.dispose();
+            log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
         }
     }
     const summaryFile = ctx.env.GITHUB_STEP_SUMMARY;
