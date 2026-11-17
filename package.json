@@ -10,9 +10,11 @@
     "url": "https://github.com/awalsh128/npm-publish-strict.git"
   },
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node esbuild.config.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && vitest run",
     "fixture": "node test/make-fixture.ts",
@@ -31,7 +33,9 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
+    "@octokit/rest": "^22.0.1",
     "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
     "typescript": "~7.0.2",
     "vitest": "^5.1.0"
   }
