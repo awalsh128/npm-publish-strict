@@ -43,10 +43,10 @@ export interface PackageJson {
   files?: string[];
   repository?: string | { url?: string };
   scripts?: Record<string, string>;
-  dependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
 }
+
+/** `release` checks preconditions, then releases; `check` only checks them. */
+export type Mode = "release" | "check";
 
 /** A commit's full hash and subject line. */
 export interface CommitSummary {
@@ -57,15 +57,11 @@ export interface CommitSummary {
 /** Everything a check may look at; the network and process boundaries are injectable for tests. */
 export interface Context {
   env: Record<string, string | undefined>;
-  /** Directory of the package to release. */
+  /** Root of the repository, which holds the package, its lockfile and the workflows. */
   cwd: string;
-  /** Root of the git repository, which holds the workflows and, for workspaces, the lockfile. Equals `cwd` for one package. */
-  root: string;
+  mode: Mode;
   branch: string | undefined;
   repository: string | undefined;
-  releaseBranch: string;
-  candidateBranch: string;
-  docsScript: string;
   /** Commit from which Conventional Commits are enforced and releases are analyzed; unset means all history. */
   baseline: string | undefined;
   pkg: PackageJson | null;

@@ -4,7 +4,9 @@ interface Metadata {
   npmRegistry: string;
   minNpm: string;
   placeholderVersion: string;
-  defaultTagFormat: string;
+  releaseBranch: string;
+  candidateBranch: string;
+  docsScript: string;
 }
 
 const metadata = readJson<Metadata>("metadata.json");
@@ -14,8 +16,14 @@ export const NPM_REGISTRY: string = metadata.npmRegistry;
 /** The version package.json keeps; semantic-release writes the real one in CI. */
 export const PLACEHOLDER_VERSION: string = metadata.placeholderVersion;
 
-/** The tag format used when the `tag-format` input is empty. */
-export const DEFAULT_TAG_FORMAT: string = metadata.defaultTagFormat;
+/** Branch that cuts official releases and publishes to npm. */
+export const RELEASE_BRANCH: string = metadata.releaseBranch;
+
+/** Branch that cuts release candidates (`-rc.N`): a tag and GitHub prerelease only. */
+export const CANDIDATE_BRANCH: string = metadata.candidateBranch;
+
+/** npm script that builds the API docs before a release is tagged. */
+export const DOCS_SCRIPT: string = metadata.docsScript;
 
 /** First npm version that supports trusted publishing. */
 export const MIN_NPM: string = metadata.minNpm;

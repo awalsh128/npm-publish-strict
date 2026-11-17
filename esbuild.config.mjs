@@ -1,10 +1,9 @@
 // Bundles the action's entry points after tsc has emitted dist/: main.js runs before any install,
-// and pin.js and semver.js are loaded on their own by release.config.mjs, so each carries its
-// dependencies.
+// and semver.js is loaded on its own by release.config.mjs, so each carries its dependencies.
 import { build } from "esbuild";
 
 await build({
-  entryPoints: ["src/main.ts", "src/pin.ts", "src/semver.ts"],
+  entryPoints: ["src/main.ts", "src/semver.ts"],
   outdir: "dist",
   bundle: true,
   platform: "node",

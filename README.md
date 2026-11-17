@@ -19,7 +19,7 @@ Every run checks these, and reports all failures at once, not just the first:
 | `package.json` and `package-lock.json` exist | Reproducible installs |
 | `version` is the placeholder `0.0.0-semantically-released` | Releases never commit |
 | `repository` matches the GitHub repository running the workflow | npm provenance and trusted publishing |
-| The docs script (default `docs:api`) exists; `files` is set; the package isn't `private` | Docs are built before tagging; contents are predictable |
+| The `docs:api` script exists; `files` is set; the package isn't `private` | Docs are built before tagging; contents are predictable |
 | No `CHANGELOG.md` | Tags and GitHub Releases are the history |
 | Every `uses:` under `.github/` is pinned to a full commit SHA | Supply-chain safety |
 | Full git history (`fetch-depth: 0`) | semantic-release reads every commit and tag |
@@ -97,64 +97,26 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 
 | Input | Default | Purpose |
 | --- | --- | --- |
-| `mode` | `release` | `check` only verifies preconditions |
-| `dry-run` | `false` | Release without tagging or publishing |
+| `mode` | `release` | `check` only verifies preconditions, from any branch |
 | `baseline-commit` | | Enforce and version only commits after this SHA |
-| `working-directory` | `.` | Directory of the package, for repositories with several |
-| `tag-format` | `v${version}` | semantic-release tag format; give each package its own |
-| `commit-paths` | | Paths whose commits version the package; empty counts every commit |
-| `pin-dependencies` | | `name=tag-format` lines for internal dependencies to publish at real versions |
-| `docs-script` | `docs:api` | npm script running typedoc |
-| `docs-dir` | `docs/api` | Docs output directory |
-| `release-branch` | `main` | Official release branch |
-| `candidate-branch` | `staging` | Release candidate branch |
-| `git-credentials` | | `user:token` for pushing tags (e.g. a GitHub App token) |
-| `github-token` | `github.token` | Token for the GitHub API |
+| `github-token` | `github.token` | Token for the GitHub API and for pushing the release tag |
 
-### Several packages in one repository
-
-Run the action once per package, in dependency order, with its own `working-directory`, `tag-format`
-and `commit-paths`. Each package then versions independently from the commits that touch it, and is
-tagged and released on its own. The lockfile and workflows stay at the repository root.
-
-```yaml
-- name: Release the base package
-  id: base
-  uses: awalsh128/npm-publish-strict@<sha>
-  with:
-    working-directory: packages/base
-    tag-format: base-v${version}
-    commit-paths: packages/base
-
-- name: Release the adapter
-  uses: awalsh128/npm-publish-strict@<sha>
-  with:
-    working-directory: packages/adapter
-    tag-format: adapter-v${version}
-    commit-paths: packages/adapter
-    pin-dependencies: "@scope/base=base-v${version}"
-```
-
-- Keep each internal dependency at the placeholder version in the repository. `pin-dependencies`
-  replaces it, in the CI workspace only, with `^` and the latest released version found in the
-  dependency's tags (stable ones on the release branch, candidates included on the candidate branch).
-  The release fails, naming the dependency, when it has no release yet.
-- A package that already has `v*` tags keeps them by leaving `tag-format` at its default.
-- Install and `npm ci` run from the directory holding `package-lock.json`, found by walking up from
-  the package.
-- `version` is the package's version for that step; give each step an `id`.
+The rest is convention, not configuration: the package is at the repository root, tags are
+`v${version}`, `main` releases and `staging` cuts candidates, and `npm run docs:api` writes the docs
+to `docs/api`. If a tag ruleset blocks `github-token` from creating tags, set `GIT_CREDENTIALS`
+(`x-access-token:<token>`, for example from a GitHub App) in the step's `env`.
 
 ## Outputs
 
-Each step reports its own package, so a later step or job can use them through its `id`
-(`steps.base.outputs.version`). Release outputs are empty when nothing was released.
+A later step or job can use them through the step's `id` (`steps.release.outputs.version`). Release
+outputs are empty when nothing was released.
 
 | Output | Meaning |
 | --- | --- |
 | `failed-checks` | Comma-separated ids of failed preconditions; empty when all pass |
 | `released` | `true` when a release was cut |
 | `version` | Released version |
-| `tag` | Git tag, as formatted by `tag-format` |
+| `tag` | Git tag (`v<version>`) |
 | `package-name` | Name from the package's `package.json` |
 | `channel` | Candidate branch name (such as `staging`) for a candidate; empty for an official release |
 | `prerelease` | `true` for a release candidate, `false` for an official release |

@@ -33,8 +33,8 @@ async function exchangeNpmToken(env, name) {
     // The exchanged token is discarded on purpose: this only proves the exchange works.
     return { ok: res.ok && !!body.token, status: res.status, message: body.message ?? res.statusText };
 }
-/** Builds the context for the real environment. */
-export function buildContext(env = process.env, cwd = process.cwd()) {
+/** Builds the context for the real environment, with the action's `mode` and `baseline-commit` inputs. */
+export function buildContext(mode, baseline, env = process.env, cwd = process.cwd()) {
     /** stdout of a git command in the repository, or null when it fails. */
     const git = (args) => {
         try {
@@ -47,13 +47,10 @@ export function buildContext(env = process.env, cwd = process.cwd()) {
     return {
         env,
         cwd,
-        root: git(["rev-parse", "--show-toplevel"]) ?? cwd,
+        mode,
         branch: env.GITHUB_REF_NAME,
         repository: env.GITHUB_REPOSITORY,
-        releaseBranch: env.RELEASE_BRANCH ?? "main",
-        candidateBranch: env.CANDIDATE_BRANCH ?? "staging",
-        docsScript: env.DOCS_SCRIPT ?? "docs:api",
-        baseline: env.BASELINE_COMMIT?.trim() || undefined,
+        baseline: baseline || undefined,
         pkg: readPackage(cwd),
         shallow() {
             const out = git(["rev-parse", "--is-shallow-repository"]);

@@ -2244,34 +2244,13 @@ var require_semver2 = __commonJS({
 
 // src/semver.ts
 var import_semver = __toESM(require_semver2(), 1);
-var VERSION_VARIABLE = "${version}";
 function atLeast(actual, min) {
   return import_semver.default.valid(actual) !== null && import_semver.default.gte(actual, min);
 }
 function isPrerelease(version) {
   return import_semver.default.prerelease(version) !== null;
 }
-function pinRange(version) {
-  return `^${version}`;
-}
-function tagPrefix(format) {
-  return format.endsWith(VERSION_VARIABLE) ? format.slice(0, -VERSION_VARIABLE.length) : null;
-}
-function versionFromTag(tag, prefix) {
-  if (!tag.startsWith(prefix)) return null;
-  const version = tag.slice(prefix.length);
-  return import_semver.default.valid(version) === version ? version : null;
-}
-function latestVersion(tags, prefix, stableOnly) {
-  const versions = tags.map((tag) => versionFromTag(tag, prefix)).filter((version) => version !== null && !(stableOnly && isPrerelease(version)));
-  return versions.sort(import_semver.default.compare).at(-1) ?? null;
-}
 export {
-  VERSION_VARIABLE,
   atLeast,
-  isPrerelease,
-  latestVersion,
-  pinRange,
-  tagPrefix,
-  versionFromTag
+  isPrerelease
 };

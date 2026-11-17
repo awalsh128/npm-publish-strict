@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { actionRoot, readInputs, releaseEnv } from "../src/release.js";
 
+/** The INPUT_* variables the runner sets from action.yml's defaults. */
+const DEFAULT_INPUTS = { INPUT_MODE: "release", "INPUT_BASELINE-COMMIT": "", "INPUT_GITHUB-TOKEN": "tok" };
+
 describe("releaseEnv", () => {
-  const inputs = readInputs({});
+  const inputs = readInputs(DEFAULT_INPUTS);
 
   it("official release branch publishes with provenance", () => {
     const env = releaseEnv(inputs, { GITHUB_REF_NAME: "main" });
@@ -15,24 +18,13 @@ describe("releaseEnv", () => {
     expect(env.NPM_CONFIG_PROVENANCE).toBeUndefined();
   });
 
-  it("package options reach the release config through the environment", () => {
-    const env = releaseEnv(
-      readInputs({
-        "INPUT_TAG-FORMAT": "pkg-v${version}",
-        "INPUT_COMMIT-PATHS": "packages/pkg, shared",
-        "INPUT_PIN-DEPENDENCIES": "@s/base=base-v${version}",
-      }),
-      { GITHUB_REF_NAME: "main" },
-    );
-    expect(env).toMatchObject({
-      TAG_FORMAT: "pkg-v${version}",
-      COMMIT_PATHS: "packages/pkg\nshared",
-      PIN_DEPENDENCIES: "@s/base=base-v${version}",
-    });
+  it("baseline and token reach semantic-release through the environment", () => {
+    const env = releaseEnv(readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": "abc123" }), { GITHUB_REF_NAME: "main" });
+    expect(env).toMatchObject({ BASELINE_COMMIT: "abc123", GITHUB_TOKEN: "tok" });
   });
 
-  it("dry run on the release branch does not publish", () => {
-    expect(releaseEnv(readInputs({ "INPUT_DRY-RUN": "true" }), { GITHUB_REF_NAME: "main" }).NPM_PUBLISH).toBe("false");
+  it("GIT_CREDENTIALS set on the step passes through", () => {
+    expect(releaseEnv(inputs, { GITHUB_REF_NAME: "main", GIT_CREDENTIALS: "u:p" }).GIT_CREDENTIALS).toBe("u:p");
   });
 });
 
@@ -43,41 +35,18 @@ describe("actionRoot", () => {
 });
 
 describe("readInputs", () => {
-  it("empty environment returns defaults", () => {
-    expect(readInputs({})).toMatchObject({
-      mode: "release",
-      dryRun: false,
-      docsScript: "docs:api",
-      releaseBranch: "main",
-      candidateBranch: "staging",
-      baselineCommit: "",
-      tagFormat: "v${version}",
-      commitPaths: [],
-      pinDependencies: "",
-    });
+  it("default inputs return release mode, no baseline and the token", () => {
+    expect(readInputs(DEFAULT_INPUTS)).toEqual({ mode: "release", baselineCommit: "", githubToken: "tok" });
   });
 
-  it("malformed pin-dependencies throws", () => {
-    expect(() => readInputs({ "INPUT_PIN-DEPENDENCIES": "base" })).toThrow("must be 'name=tag-format'");
-  });
-
-  it("baseline, mode and dry-run are read from INPUT_ variables", () => {
-    expect(readInputs({ "INPUT_BASELINE-COMMIT": " abc123 ", INPUT_MODE: "check", "INPUT_DRY-RUN": "true" })).toMatchObject({
+  it("baseline and check mode are trimmed and read", () => {
+    expect(readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": " abc123 ", INPUT_MODE: "check" })).toMatchObject({
       baselineCommit: "abc123",
       mode: "check",
-      dryRun: true,
     });
-  });
-
-  it("git credentials default to the github token", () => {
-    expect(readInputs({ "INPUT_GITHUB-TOKEN": "tok" }).gitCredentials).toBe("x-access-token:tok");
-  });
-
-  it("explicit git credentials win", () => {
-    expect(readInputs({ "INPUT_GITHUB-TOKEN": "tok", "INPUT_GIT-CREDENTIALS": "u:p" }).gitCredentials).toBe("u:p");
   });
 
   it("unknown mode throws", () => {
-    expect(() => readInputs({ INPUT_MODE: "bogus" })).toThrow("must be 'release' or 'check'");
+    expect(() => readInputs({ ...DEFAULT_INPUTS, INPUT_MODE: "bogus" })).toThrow("must be 'release' or 'check'");
   });
 });

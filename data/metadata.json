@@ -2,5 +2,9 @@
   "npmRegistry": "https://registry.npmjs.org",
   "minNpm": "11.5.1",
   "placeholderVersion": "0.0.0-semantically-released",
-  "defaultTagFormat": "v${version}"
+  "tagFormat": "v${version}",
+  "releaseBranch": "main",
+  "candidateBranch": "staging",
+  "docsScript": "docs:api",
+  "docsDir": "docs/api"
 }

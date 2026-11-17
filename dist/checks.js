@@ -1,9 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONVENTIONAL_HEADER, MIN_NPM, PLACEHOLDER_VERSION } from "./constants.js";
+import { CANDIDATE_BRANCH, CONVENTIONAL_HEADER, DOCS_SCRIPT, MIN_NPM, PLACEHOLDER_VERSION, RELEASE_BRANCH } from "./constants.js";
 import { LINKS } from "./links.js";
 import { atLeast } from "./semver.js";
-import { findLockfileDir } from "./workspace.js";
 /** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
 export function repoSlug(repository) {
     const url = typeof repository === "string" ? repository : repository?.url;
@@ -36,20 +35,22 @@ function listWorkflowFiles(dir) {
         .map((e) => join(e.parentPath, e.name));
 }
 /** True when this run publishes to npm (the official release branch, including its dry runs). */
-const publishes = (ctx) => ctx.branch === ctx.releaseBranch;
+const publishes = (ctx) => ctx.branch === RELEASE_BRANCH;
 export const checks = [
     {
         id: "branch",
         title: "Release from an allowed branch",
-        run: (ctx) => ctx.branch === ctx.releaseBranch || ctx.branch === ctx.candidateBranch
+        // Check mode never releases, so it may run from any branch, such as a pull request's.
+        applies: (ctx) => ctx.mode === "release",
+        run: (ctx) => ctx.branch === RELEASE_BRANCH || ctx.branch === CANDIDATE_BRANCH
             ? null
             : {
-                problem: `Releases run only from '${ctx.releaseBranch}' (official) or '${ctx.candidateBranch}' (release candidates), not '${ctx.branch}'.`,
+                problem: `Releases run only from '${RELEASE_BRANCH}' (official) or '${CANDIDATE_BRANCH}' (release candidates), not '${ctx.branch}'.`,
                 automated: [],
                 manual: [
                     "Edit the workflow that calls this action so its trigger is limited to those branches:",
-                    `  on:\n    push:\n      branches: [${ctx.releaseBranch}, ${ctx.candidateBranch}]`,
-                    "Or set the `release-branch` / `candidate-branch` inputs to the branches you use.",
+                    `  on:\n    push:\n      branches: [${RELEASE_BRANCH}, ${CANDIDATE_BRANCH}]`,
+                    "To verify a fix from another branch, run the action with `mode: check` instead.",
                 ],
                 links: [],
             },
@@ -58,11 +59,7 @@ export const checks = [
         id: "package-files",
         title: "package.json and package-lock.json exist",
         run: (ctx) => {
-            // Workspaces keep one package-lock.json at the repository root, above the package.
-            const missing = [
-                ...(existsSync(join(ctx.cwd, "package.json")) ? [] : ["package.json"]),
-                ...(findLockfileDir(ctx.cwd, ctx.root) ? [] : ["package-lock.json"]),
-            ];
+            const missing = ["package.json", "package-lock.json"].filter((file) => !existsSync(join(ctx.cwd, file)));
             return missing.length === 0
                 ? null
                 : {
@@ -109,17 +106,17 @@ export const checks = [
     {
         id: "package-docs-script",
         title: "package.json has the API docs script",
-        run: (ctx) => !ctx.pkg || ctx.pkg.scripts?.[ctx.docsScript]
+        run: (ctx) => !ctx.pkg || ctx.pkg.scripts?.[DOCS_SCRIPT]
             ? null
             : {
-                problem: `npm script "${ctx.docsScript}" is missing. The release builds API docs with it before tagging.`,
+                problem: `npm script "${DOCS_SCRIPT}" is missing. The release builds API docs with it before tagging.`,
                 automated: [
                     { label: "Install TypeDoc", command: "npm install --save-dev typedoc" },
-                    { label: "Add the script", command: `npm pkg set "scripts.${ctx.docsScript}=typedoc --out docs/api src/index.ts"` },
+                    { label: "Add the script", command: `npm pkg set "scripts.${DOCS_SCRIPT}=typedoc --out docs/api src/index.ts"` },
                 ],
                 manual: [
-                    "Adjust the entry point (src/index.ts) and output directory to your project, or set the `docs-script` and `docs-dir` inputs.",
-                    `Run \`npm run ${ctx.docsScript}\` locally to confirm it works, then commit.`,
+                    "Adjust the entry point (src/index.ts) to your project; keep the output in docs/api.",
+                    `Run \`npm run ${DOCS_SCRIPT}\` locally to confirm it works, then commit.`,
                 ],
                 links: [LINKS.typedoc],
             },
@@ -164,8 +161,7 @@ export const checks = [
         id: "actions-pinned",
         title: "GitHub Actions are pinned to commit SHAs",
         run: (ctx) => {
-            // Workflows live at the repository root, which is above the package in a workspace.
-            const unpinned = listWorkflowFiles(join(ctx.root, ".github")).flatMap((f) => findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.root.length + 1)));
+            const unpinned = listWorkflowFiles(join(ctx.cwd, ".github")).flatMap((f) => findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.cwd.length + 1)));
             return unpinned.length === 0
                 ? null
                 : {
