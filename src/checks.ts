@@ -1,36 +1,12 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Check, Context, Link, PackageJson } from "./types.js";
+import type { Check, Context, PackageJson } from "./types.js";
+import { CONVENTIONAL_HEADER, MIN_NPM } from "./constants.js";
+import { LINKS } from "./links.js";
 import { PLACEHOLDER_VERSION } from "./placeholder.js";
 import { findLockfileDir } from "./workspace.js";
 
 export { PLACEHOLDER_VERSION };
-/** First npm version that supports trusted publishing. */
-export const MIN_NPM: readonly number[] = [11, 5, 1];
-
-export const LINKS = {
-  trustedPublishers: { text: "npm: Trusted publishers", url: "https://docs.npmjs.com/trusted-publishers" },
-  npmTrust: { text: "npm trust command", url: "https://docs.npmjs.com/cli/commands/npm-trust" },
-  oidcPermissions: {
-    text: "GitHub: permissions for OIDC (id-token)",
-    url: "https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#adding-permissions-settings",
-  },
-  pinning: {
-    text: "GitHub: pin actions to a full-length commit SHA",
-    url: "https://docs.github.com/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#using-third-party-actions",
-  },
-  checkout: { text: "actions/checkout: fetch all history", url: "https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches" },
-  setupNode: { text: "actions/setup-node", url: "https://github.com/actions/setup-node" },
-  packageJson: { text: "npm: package.json fields", url: "https://docs.npmjs.com/cli/configuring-npm/package-json" },
-  typedoc: { text: "TypeDoc", url: "https://typedoc.org/" },
-  provenance: { text: "npm: generating provenance statements", url: "https://docs.npmjs.com/generating-provenance-statements" },
-  conventionalCommits: { text: "Conventional Commits 1.0.0", url: "https://www.conventionalcommits.org/en/v1.0.0/" },
-  commitlint: { text: "commitlint: getting started", url: "https://commitlint.js.org/guides/getting-started.html" },
-  semanticRelease: {
-    text: "semantic-release FAQ: package.json version",
-    url: "https://semantic-release.gitbook.io/semantic-release/support/faq#why-is-the-package.jsons-version-not-updated-in-my-repository",
-  },
-} as const satisfies Record<string, Link>;
 
 /** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
 export function repoSlug(repository: PackageJson["repository"]): string | null {
@@ -73,10 +49,6 @@ function listWorkflowFiles(dir: string): string[] {
     .filter((e) => e.isFile() && /\.ya?ml$/.test(e.name))
     .map((e) => join(e.parentPath, e.name));
 }
-
-/** Header of a Conventional Commit: `type(scope)!: description`. */
-export const CONVENTIONAL_HEADER =
-  /^(feat|fix|perf|docs|style|refactor|test|build|ci|chore|revert)(\([^)\r\n]+\))?!?: \S/;
 
 /** True when this run publishes to npm (the official release branch, including its dry runs). */
 const publishes = (ctx: Context): boolean => ctx.branch === ctx.releaseBranch;

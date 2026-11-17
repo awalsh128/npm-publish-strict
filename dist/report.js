@@ -1,11 +1,12 @@
 import { appendFileSync } from "node:fs";
+import { renderTemplate } from "./data.js";
 /** Markdown for one failed check. */
 export function failureMarkdown(check, failure) {
-    const out = [`### ❌ ${check.title} (\`${check.id}\`)`, "", failure.problem, ""];
+    const out = [renderTemplate("failure-heading.md", { title: check.title, id: check.id }), "", failure.problem, ""];
     if (failure.details?.length)
         out.push(...failure.details.map((d) => `- ${d}`), "");
     if (failure.automated.length) {
-        out.push("**Automated:** run these on your machine (file changes need a clone of the repository, and then a commit and push).", "");
+        out.push(renderTemplate("automated-intro.md"), "");
         for (const step of failure.automated)
             out.push(`${step.label}:`, "", "```bash", step.command, "```", "");
     }
@@ -26,29 +27,16 @@ export function failureMarkdown(check, failure) {
 }
 /** Markdown footer telling the user how to confirm their fixes. */
 export function verifyMarkdown(env) {
-    return [
-        "## Verify the fixes",
-        "",
-        "Every item above is re-checked by the same code on each run, including the npm trusted publisher (an OIDC token exchange with npm). To confirm your fixes without releasing anything, run the action in check mode:",
-        "",
-        "```yaml",
-        "- uses: awalsh128/npm-publish-strict@<sha>",
-        "  with:",
-        "    mode: check",
-        "```",
-        "",
-        `Or re-run this workflow (Actions > ${env.GITHUB_WORKFLOW ?? "this workflow"} > Re-run failed jobs). Nothing is tagged or published until every check passes.`,
-        "",
-    ].join("\n");
+    return renderTemplate("verify.md", { workflow: env.GITHUB_WORKFLOW ?? "this workflow" }) + "\n";
 }
 /** Markdown for the whole run. */
 export function summaryMarkdown(env, results) {
     const failed = results.filter((r) => r.failures.length > 0);
     if (failed.length === 0) {
-        return [`## ✅ All ${results.length} preconditions pass`, "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
+        return [renderTemplate("pass-heading.md", { count: results.length }), "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
     }
     const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
-    return [`## ❌ ${failed.length} precondition(s) failed`, "", ...sections, verifyMarkdown(env)].join("\n");
+    return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
 /** Prints results to the job log with annotations, and appends them to the job summary. Returns true when all pass. */
 export function report(ctx, results) {

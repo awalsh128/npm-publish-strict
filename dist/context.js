@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-export const NPM_REGISTRY = "https://registry.npmjs.org";
+import { Octokit } from "@octokit/rest";
+import { NPM_REGISTRY } from "./constants.js";
 function readPackage(cwd) {
     try {
         return JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
@@ -88,12 +89,14 @@ export function buildContext(env = process.env, cwd = process.cwd()) {
             if (!env.GITHUB_REPOSITORY)
                 return null;
             try {
-                const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}`, {
-                    headers: { Accept: "application/vnd.github+json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                const octokit = new Octokit({
+                    auth: token,
+                    baseUrl: env.GITHUB_API_URL,
+                    request: { signal: AbortSignal.timeout(10_000) },
                 });
-                if (!res.ok)
-                    return null;
-                return (await res.json()).private === false;
+                const [owner = "", repo = ""] = env.GITHUB_REPOSITORY.split("/");
+                const { data } = await octokit.rest.repos.get({ owner, repo });
+                return data.private === false;
             }
             catch {
                 return null;
