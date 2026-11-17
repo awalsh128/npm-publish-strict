@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { setOutput } from "@actions/core";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
-import { isPrerelease } from "./dist/semver.js";
+import { Version } from "./dist/semver.js";
 
 // The conventions (branches, tag format, docs script and directory) are shared with the action's checks.
 const { tagFormat, releaseBranch, candidateBranch, docsScript, docsDir } = JSON.parse(
@@ -43,7 +43,7 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
     tag: nextRelease.gitTag,
     "package-name": name,
     channel: nextRelease.channel ?? "",
-    prerelease: isPrerelease(nextRelease.version) ? "true" : "false",
+    prerelease: Version.parse(nextRelease.version)?.isPrerelease ? "true" : "false",
     "release-type": nextRelease.type,
     "git-head": nextRelease.gitHead,
     published: urlOf(/npm/i) ? "true" : "false",

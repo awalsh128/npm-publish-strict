@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CANDIDATE_BRANCH, CONVENTIONAL_HEADER, DOCS_SCRIPT, MIN_NPM, PLACEHOLDER_VERSION, RELEASE_BRANCH } from "./constants.js";
 import { LINKS } from "./links.js";
-import { atLeast } from "./semver.js";
+import { Version } from "./semver.js";
 /** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
 export function repoSlug(repository) {
     const url = typeof repository === "string" ? repository : repository?.url;
@@ -294,7 +294,7 @@ export const checks = [
         applies: publishes,
         run: (ctx) => {
             const version = ctx.npmVersion();
-            return version && atLeast(version, MIN_NPM)
+            return version && Version.parse(version)?.atLeast(MIN_NPM)
                 ? null
                 : {
                     problem: `npm ${version ?? "(not found)"} is older than ${MIN_NPM}, the first version with trusted publishing.`,

@@ -2,12 +2,32 @@
 // release.config.mjs imports the compiled dist/semver.js.
 import semver from "semver";
 
-/** True when the version `actual` is at least `min`. */
-export function atLeast(actual: string, min: string): boolean {
-  return semver.valid(actual) !== null && semver.gte(actual, min);
-}
+/** A valid semantic version such as `1.2.3` or `1.0.0-rc.1`. Build with {@link Version.parse}. */
+export class Version {
+  private constructor(
+    /** The version text, exactly as parsed. */
+    readonly value: string,
+  ) {}
 
-/** True for a prerelease such as `1.0.0-rc.1`; a hyphen in build metadata (`1.0.0+a-b`) does not count. */
-export function isPrerelease(version: string): boolean {
-  return semver.prerelease(version) !== null;
+  /** The version in `text`, or null unless `text` is exactly a valid version (no `v`, no whitespace). */
+  static parse(text: string): Version | null {
+    const parsed = semver.parse(text);
+    // semver.parse accepts a leading `v` and whitespace and its `version` drops build metadata, so rebuild the exact text.
+    const exact = parsed && [parsed.version, ...(parsed.build.length > 0 ? [parsed.build.join(".")] : [])].join("+");
+    return exact === text ? new Version(text) : null;
+  }
+
+  /** True for a prerelease such as `1.0.0-rc.1`; a hyphen in build metadata (`1.0.0+a-b`) does not count. */
+  get isPrerelease(): boolean {
+    return semver.prerelease(this.value) !== null;
+  }
+
+  /** True when this version is at least `min`. */
+  atLeast(min: string): boolean {
+    return semver.gte(this.value, min);
+  }
+
+  toString(): string {
+    return this.value;
+  }
 }

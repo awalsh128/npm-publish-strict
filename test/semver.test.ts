@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, isPrerelease } from "../src/semver.js";
+import { Version } from "../src/semver.js";
 
-describe("atLeast", () => {
+describe("Version.parse", () => {
+  it.each([
+    ["1.2.3", "1.2.3"],
+    ["1.0.0-rc.1", "1.0.0-rc.1"],
+    ["v1.2.3", undefined],
+    [" 1.2.3", undefined],
+    ["not a version", undefined],
+  ])("%s returns %s", (text, expected) => {
+    expect(Version.parse(text)?.value).toBe(expected);
+  });
+});
+
+describe("Version.atLeast", () => {
   it.each([
     ["11.5.1", true],
     ["11.19.1", true],
@@ -9,18 +21,17 @@ describe("atLeast", () => {
     ["11.5.0", false],
     ["10.9.2", false],
     ["11.5.1-beta.1", false],
-    ["not a version", false],
   ])("%s against 11.5.1 returns %s", (version, expected) => {
-    expect(atLeast(version, "11.5.1")).toBe(expected);
+    expect(Version.parse(version)?.atLeast("11.5.1")).toBe(expected);
   });
 });
 
-describe("isPrerelease", () => {
+describe("Version.isPrerelease", () => {
   it.each([
     ["1.0.0-rc.1", true],
     ["1.0.0", false],
     ["1.0.0+build-1", false],
   ])("%s returns %s", (version, expected) => {
-    expect(isPrerelease(version)).toBe(expected);
+    expect(Version.parse(version)?.isPrerelease).toBe(expected);
   });
 });

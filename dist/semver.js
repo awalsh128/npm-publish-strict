@@ -921,7 +921,7 @@ var require_truncate = __commonJS({
       return parse(versionStringToParse, options);
     };
     var doTruncation = (version, truncation) => {
-      if (isPrerelease2(truncation)) {
+      if (isPrerelease(truncation)) {
         return version.version;
       }
       version.prerelease = [];
@@ -936,7 +936,7 @@ var require_truncate = __commonJS({
       }
       return version.format();
     };
-    var isPrerelease2 = (type) => {
+    var isPrerelease = (type) => {
       return type.startsWith("pre");
     };
     module.exports = truncate;
@@ -2244,13 +2244,29 @@ var require_semver2 = __commonJS({
 
 // src/semver.ts
 var import_semver = __toESM(require_semver2(), 1);
-function atLeast(actual, min) {
-  return import_semver.default.valid(actual) !== null && import_semver.default.gte(actual, min);
-}
-function isPrerelease(version) {
-  return import_semver.default.prerelease(version) !== null;
-}
+var Version = class _Version {
+  constructor(value) {
+    this.value = value;
+  }
+  value;
+  /** The version in `text`, or null unless `text` is exactly a valid version (no `v`, no whitespace). */
+  static parse(text) {
+    const parsed = import_semver.default.parse(text);
+    const exact = parsed && [parsed.version, ...parsed.build.length > 0 ? [parsed.build.join(".")] : []].join("+");
+    return exact === text ? new _Version(text) : null;
+  }
+  /** True for a prerelease such as `1.0.0-rc.1`; a hyphen in build metadata (`1.0.0+a-b`) does not count. */
+  get isPrerelease() {
+    return import_semver.default.prerelease(this.value) !== null;
+  }
+  /** True when this version is at least `min`. */
+  atLeast(min) {
+    return import_semver.default.gte(this.value, min);
+  }
+  toString() {
+    return this.value;
+  }
+};
 export {
-  atLeast,
-  isPrerelease
+  Version
 };
