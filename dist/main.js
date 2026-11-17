@@ -39882,7 +39882,10 @@ function renderTemplate(name, values = {}) {
 var metadata = readJson("metadata.json");
 var NPM_REGISTRY = metadata.npmRegistry;
 var MIN_NPM = metadata.minNpm;
-var CONVENTIONAL_HEADER = new RegExp(metadata.conventionalHeader);
+var COMMIT_TYPES = readJson("commit-types.json");
+var CONVENTIONAL_HEADER = new RegExp(
+  `^(${COMMIT_TYPES.map((t) => t.type).join("|")})(\\([^)\\r\\n]+\\))?!?: \\S`
+);
 
 // src/context.ts
 function readPackage(cwd) {

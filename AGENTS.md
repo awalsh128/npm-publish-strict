@@ -23,6 +23,7 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - Keep runtime `dependencies` at zero in `src/`; Node built-ins plus `@octokit/rest` for GitHub API calls and `@awalsh128/winston-github-actions` for logging (`src/logger.ts`; `src/pin.ts` stays on `console.log` because it runs outside the bundle). Both are devDependencies that `esbuild.config.mjs` bundles into `dist/main.js`, so the action runs before any install. semantic-release and its plugins are installed from this repo's lockfile at run time.
 - Every precondition MUST return a `Failure` with `problem`, `automated` commands, `manual` steps with navigation, and `links`. Never fail with a bare message.
 - Conventions enforced on consumers: placeholder `version` `0.0.0-semantically-released`, no `CHANGELOG.md`, no release commits, `main` official / `staging` rc, npm trusted publishing (OIDC), typedoc via a `docs:api` script, Conventional Commits (from `baseline-commit` when set).
+- `data/commit-types.json` is the only list of commit prefixes: it feeds the `commits` check, semantic-release's `releaseRules` and the release notes sections. Change it there, never in the regex or the config.
 - ASK FIRST before changing action inputs/outputs; consumers depend on them.
 
 ## Branches And Releases

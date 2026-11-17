@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { atLeast, checks, findUnpinnedActions, repoSlug } from "../src/checks.js";
-import { CONVENTIONAL_HEADER } from "../src/constants.js";
+import { COMMIT_TYPES, CONVENTIONAL_HEADER } from "../src/constants.js";
 import { runChecks } from "../src/run.js";
 import type { Context } from "../src/types.js";
 import { join } from "node:path";
@@ -63,6 +63,10 @@ describe("findUnpinnedActions", () => {
 describe("CONVENTIONAL_HEADER", () => {
   it.each(["feat: add x", "fix(parser): handle y", "feat!: break", "chore(deps): bump"])("%s matches", (s) => {
     expect(CONVENTIONAL_HEADER.test(s)).toBe(true);
+  });
+
+  it.each(COMMIT_TYPES.map((t) => t.type))("type %s from commit-types.json matches", (type) => {
+    expect(CONVENTIONAL_HEADER.test(`${type}: do a thing`)).toBe(true);
   });
 
   it.each(["Update readme", "feat add x", "feat:", "Fix: capital", "wip"])("%s does not match", (s) => {

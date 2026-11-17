@@ -32,7 +32,11 @@ const visible = (context) => ({
     .filter((c) => !afterBaseline || afterBaseline.has(c.hash))
     .filter((c) => commitPaths.length === 0 || touchesPaths(c.hash)),
 });
-const preset = { preset: "conventionalcommits" };
+// The commit types (and what each releases) come from data/commit-types.json, which the action's own
+// commit check reads too, so the two can't disagree about what a valid prefix is.
+const commitTypes = JSON.parse(readFileSync(new URL("data/commit-types.json", import.meta.url), "utf8"));
+const releaseRules = commitTypes.filter((t) => t.release).map(({ type, release }) => ({ type, release }));
+const preset = { preset: "conventionalcommits", presetConfig: { types: commitTypes.map(({ release, ...type }) => type) } };
 
 // What a release surfaces to the workflow, as if the package had been released by its own action.
 // Multi-line values (the release notes) use the heredoc form, with a delimiter the notes can't contain.
@@ -72,7 +76,7 @@ export default {
     process.env.BRANCH_RELEASE ?? "main",
   ],
   plugins: [
-    { analyzeCommits: (config, context) => analyzeCommits({ ...preset, ...config }, visible(context)) },
+    { analyzeCommits: (config, context) => analyzeCommits({ ...preset, releaseRules, ...config }, visible(context)) },
     { generateNotes: (config, context) => generateNotes({ ...preset, ...config }, visible(context)) },
     // Internal dependencies are pinned before the npm plugin prepares the package.
     ...(hasPins ? [["@semantic-release/exec", { prepareCmd: `node "${fileURLToPath(new URL("dist/pin.js", import.meta.url))}"` }]] : []),
