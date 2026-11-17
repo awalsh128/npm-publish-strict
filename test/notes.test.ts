@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseOutputs } from "./helpers.ts";
 // @ts-expect-error release.config.mjs is plain JavaScript without types.
 import config from "../release.config.mjs";
 
@@ -149,13 +150,15 @@ describe("release.config.mjs success step", () => {
   it("success with a candidate release writes its tag, package, channel and notes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "pkg-"));
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@s/pkg" }));
-    const out = await outputsOf(releaseContext(dir));
-    expect(out).toContain("tag=pkg-v1.1.0-rc.1\n");
-    expect(out).toContain("package-name=@s/pkg\n");
-    expect(out).toContain("channel=rc\n");
-    expect(out).toContain("prerelease=true\n");
-    expect(out).toContain("published=false\n");
-    expect(out).toContain("release-url=https://github.com/o/r/releases/tag/x\n");
-    expect(out).toMatch(/release-notes<<EOF_[\w-]+\n## Notes\n- a\nEOF_/);
+    const out = parseOutputs(await outputsOf(releaseContext(dir)));
+    expect(out).toMatchObject({
+      tag: "pkg-v1.1.0-rc.1",
+      "package-name": "@s/pkg",
+      channel: "rc",
+      prerelease: "true",
+      published: "false",
+      "release-url": "https://github.com/o/r/releases/tag/x",
+      "release-notes": "## Notes\n- a",
+    });
   });
 });

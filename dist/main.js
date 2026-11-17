@@ -21956,7 +21956,7 @@ var require_core = __commonJS({
     exports.getInput = getInput;
     exports.getMultilineInput = getMultilineInput;
     exports.getBooleanInput = getBooleanInput;
-    exports.setOutput = setOutput;
+    exports.setOutput = setOutput2;
     exports.setCommandEcho = setCommandEcho;
     exports.setFailed = setFailed;
     exports.isDebug = isDebug;
@@ -22031,7 +22031,7 @@ var require_core = __commonJS({
       throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
-    function setOutput(name, value) {
+    function setOutput2(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
         return (0, file_command_1.issueFileCommand)("OUTPUT", (0, file_command_1.prepareKeyValueMessage)(name, value));
@@ -35807,7 +35807,7 @@ var require_dist2 = __commonJS({
 });
 
 // src/main.ts
-import { appendFileSync as appendFileSync2 } from "node:fs";
+var import_core3 = __toESM(require_core(), 1);
 import { resolve as resolve2 } from "node:path";
 
 // src/context.ts
@@ -40482,8 +40482,7 @@ async function main() {
   );
   const results = await runChecks(ctx);
   const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
-  if (env.GITHUB_OUTPUT) appendFileSync2(env.GITHUB_OUTPUT, `failed-checks=${failedChecks.join(",")}
-`);
+  (0, import_core3.setOutput)("failed-checks", failedChecks.join(","));
   if (!report(ctx, results, log)) {
     process.exitCode = 1;
     return;

@@ -51,3 +51,21 @@ export function makeRepo(files: Record<string, string>): string {
   }
   return dir;
 }
+
+/** Parses a GITHUB_OUTPUT file: `name=value` lines and `name<<DELIMITER` blocks. */
+export function parseOutputs(text: string): Record<string, string> {
+  const outputs: Record<string, string> = {};
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const block = /^([\w-]+)<<(.+)$/.exec(lines[i] ?? "");
+    if (block) {
+      const end = lines.indexOf(block[2]!, i + 1);
+      outputs[block[1]!] = lines.slice(i + 1, end).join("\n");
+      i = end;
+      continue;
+    }
+    const pair = /^([\w-]+)=(.*)$/.exec(lines[i] ?? "");
+    if (pair) outputs[pair[1]!] = pair[2]!;
+  }
+  return outputs;
+}

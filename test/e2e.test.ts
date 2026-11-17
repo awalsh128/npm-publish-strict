@@ -1,10 +1,11 @@
 // Runs the built action (dist/main.js) in a child process against fixture repositories, with the
 // environment GitHub Actions would provide. Needs `npm run build` first (npm test does it).
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parseOutputs } from "./helpers.ts";
 import { createFixture, type Scenario } from "./fixtures.ts";
 
 const MAIN = resolve("dist/main.js");
@@ -21,6 +22,7 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
   const root = mkdtempSync(join(tmpdir(), "e2e-"));
   const fixture = createFixture(join(root, "repo"), scenario, "o/r", "staging");
   const outputFile = join(root, "output");
+  writeFileSync(outputFile, ""); // the runner creates GITHUB_OUTPUT before the step starts
   const summaryFile = join(root, "summary.md");
   const result = spawnSync("node", [MAIN], {
     cwd: fixture.dir,
@@ -42,7 +44,7 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
   const output = existsSync(outputFile) ? readFileSync(outputFile, "utf8") : "";
   return {
     status: result.status,
-    failedChecks: /^failed-checks=(.*)$/m.exec(output)?.[1] ?? "",
+    failedChecks: parseOutputs(output)["failed-checks"] ?? "",
     summary: existsSync(summaryFile) ? readFileSync(summaryFile, "utf8") : "",
     stdout: result.stdout,
   };
