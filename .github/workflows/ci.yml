@@ -26,10 +26,7 @@ jobs:
         shell: bash
         run: npm ci --ignore-scripts
 
-      - name: Typecheck
-        shell: bash
-        run: npm run typecheck
-
+      # npm test builds first, and the build typechecks.
       - name: Test
         shell: bash
         run: npm test
