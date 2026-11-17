@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { failureMarkdown, report, summaryMarkdown } from "../src/report.js";
 import type { Check, CheckResult, Failure } from "../src/types.js";
 
@@ -44,19 +44,23 @@ describe("summaryMarkdown", () => {
 
 describe("report", () => {
   const results: CheckResult[] = [{ check, failures: [failure] }];
+  const fakeLog = () => {
+    const errors: string[] = [];
+    return {
+      errors,
+      log: { info: () => undefined, error: (m: string) => errors.push(m), group: () => ({ dispose: () => undefined }) },
+    };
+  };
 
   it("failure returns false, annotates, and writes the job summary", () => {
     const file = join(mkdtempSync(join(tmpdir(), "sum-")), "summary.md");
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    expect(report({ env: { GITHUB_STEP_SUMMARY: file } }, results)).toBe(false);
-    expect(log).toHaveBeenCalledWith("::error title=Demo check (demo)::Something is wrong.");
+    const { log, errors } = fakeLog();
+    expect(report({ env: { GITHUB_STEP_SUMMARY: file } }, results, log)).toBe(false);
+    expect(errors).toEqual(["Demo check (demo): Something is wrong."]);
     expect(readFileSync(file, "utf8")).toContain("Verify the fixes");
-    log.mockRestore();
   });
 
   it("success returns true", () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    expect(report({ env: {} }, [{ check, failures: [] }])).toBe(true);
-    log.mockRestore();
+    expect(report({ env: {} }, [{ check, failures: [] }], fakeLog().log)).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { renderTemplate } from "./data.js";
+import { createLogger, type Log } from "./logger.js";
 import type { Check, CheckResult, Context, Failure } from "./types.js";
 
 /** Markdown for one failed check. */
@@ -38,15 +39,15 @@ export function summaryMarkdown(env: Context["env"], results: readonly CheckResu
   return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
 
-/** Prints results to the job log with annotations, and appends them to the job summary. Returns true when all pass. */
-export function report(ctx: Pick<Context, "env">, results: readonly CheckResult[]): boolean {
-  for (const r of results) console.log(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
+/** Logs results with annotations, and appends them to the job summary. Returns true when all pass. */
+export function report(ctx: Pick<Context, "env">, results: readonly CheckResult[], log: Log = createLogger()): boolean {
+  for (const r of results) log.info(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
   for (const r of results) {
     for (const failure of r.failures) {
-      console.log(`::group::How to fix: ${r.check.title}`);
-      console.log(failureMarkdown(r.check, failure));
-      console.log("::endgroup::");
-      console.log(`::error title=${r.check.title} (${r.check.id})::${failure.problem}`);
+      const group = log.group(`How to fix: ${r.check.title}`);
+      log.info(failureMarkdown(r.check, failure));
+      group.dispose();
+      log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
     }
   }
   const summaryFile = ctx.env.GITHUB_STEP_SUMMARY;
