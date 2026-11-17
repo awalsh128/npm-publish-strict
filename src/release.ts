@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEFAULT_TAG_FORMAT } from "./constants.js";
 import { parsePins, splitList } from "./workspace.js";
 
 type Env = Record<string, string | undefined>;
@@ -47,7 +48,7 @@ export function readInputs(env: Env): Inputs {
     candidateBranch: input("candidate-branch", "staging"),
     baselineCommit: input("baseline-commit"),
     workingDirectory: input("working-directory", "."),
-    tagFormat: input("tag-format", "v${version}"),
+    tagFormat: input("tag-format", DEFAULT_TAG_FORMAT),
     commitPaths: splitList(input("commit-paths")),
     pinDependencies: input("pin-dependencies"),
     githubToken,

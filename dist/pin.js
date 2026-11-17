@@ -921,7 +921,7 @@ var require_truncate = __commonJS({
       return parse(versionStringToParse, options);
     };
     var doTruncation = (version, truncation) => {
-      if (isPrerelease(truncation)) {
+      if (isPrerelease2(truncation)) {
         return version.version;
       }
       version.prerelease = [];
@@ -936,7 +936,7 @@ var require_truncate = __commonJS({
       }
       return version.format();
     };
-    var isPrerelease = (type) => {
+    var isPrerelease2 = (type) => {
       return type.startsWith("pre");
     };
     module.exports = truncate;
@@ -2244,31 +2244,63 @@ var require_semver2 = __commonJS({
 
 // src/pin.ts
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync as readFileSync2, writeFileSync } from "node:fs";
+import { join as join2 } from "node:path";
 
-// src/placeholder.ts
-var PLACEHOLDER_VERSION = "0.0.0-semantically-released";
+// src/data.ts
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+var DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
+function readJson(name) {
+  return JSON.parse(readFileSync(join(DATA_DIR, name), "utf8"));
+}
+
+// src/constants.ts
+var metadata = readJson("metadata.json");
+var NPM_REGISTRY = metadata.npmRegistry;
+var PLACEHOLDER_VERSION = metadata.placeholderVersion;
+var DEFAULT_TAG_FORMAT = metadata.defaultTagFormat;
+var MIN_NPM = metadata.minNpm;
+var COMMIT_TYPES = readJson("commit-types.json");
+var CONVENTIONAL_HEADER = new RegExp(
+  `^(${COMMIT_TYPES.map((t) => t.type).join("|")})(\\([^)\\r\\n]+\\))?!?: \\S`
+);
 
 // src/semver.ts
 var import_semver = __toESM(require_semver2(), 1);
-function latestVersion(tags, tagPrefix, stableOnly) {
-  const versions = tags.filter((tag) => tag.startsWith(tagPrefix)).map((tag) => tag.slice(tagPrefix.length)).filter((version) => import_semver.default.valid(version) === version && !(stableOnly && import_semver.default.prerelease(version)));
+var VERSION_VARIABLE = "${version}";
+function isPrerelease(version) {
+  return import_semver.default.prerelease(version) !== null;
+}
+function pinRange(version) {
+  return `^${version}`;
+}
+function tagPrefix(format) {
+  return format.endsWith(VERSION_VARIABLE) ? format.slice(0, -VERSION_VARIABLE.length) : null;
+}
+function versionFromTag(tag, prefix) {
+  if (!tag.startsWith(prefix)) return null;
+  const version = tag.slice(prefix.length);
+  return import_semver.default.valid(version) === version ? version : null;
+}
+function latestVersion(tags, prefix, stableOnly) {
+  const versions = tags.map((tag) => versionFromTag(tag, prefix)).filter((version) => version !== null && !(stableOnly && isPrerelease(version)));
   return versions.sort(import_semver.default.compare).at(-1) ?? null;
 }
 
 // src/workspace.ts
-var VERSION_VARIABLE = "${version}";
 function splitList(value) {
   return value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 }
 function parsePins(value) {
   return splitList(value).map((line) => {
     const [name, format, ...rest] = line.split("=").map((part) => part.trim());
-    if (!name || !format || rest.length > 0 || !format.endsWith(VERSION_VARIABLE)) {
+    const prefix = format ? tagPrefix(format) : null;
+    if (!name || prefix === null || rest.length > 0) {
       throw new Error(`Input 'pin-dependencies' must be 'name=tag-format' lines ending in ${VERSION_VARIABLE}, not '${line}'.`);
     }
-    return { name, tagPrefix: format.slice(0, -VERSION_VARIABLE.length) };
+    return { name, tagPrefix: prefix };
   });
 }
 var DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"];
@@ -2283,7 +2315,7 @@ function pinDependencies(pkg, pins2, tags, stableOnly) {
       if (!version) {
         throw new Error(`'${pin.name}' has no release tagged '${pin.tagPrefix}<version>', so '${pkg.name}' can't depend on it yet. Release it first.`);
       }
-      deps[pin.name] = pinned[pin.name] = `^${version}`;
+      deps[pin.name] = pinned[pin.name] = pinRange(version);
     }
   }
   return { pkg: result, pinned };
@@ -2293,8 +2325,8 @@ function pinDependencies(pkg, pins2, tags, stableOnly) {
 var env = process.env;
 var pins = parsePins(env.PIN_DEPENDENCIES ?? "");
 if (pins.length > 0) {
-  const file = join(process.cwd(), "package.json");
-  const pkg = JSON.parse(readFileSync(file, "utf8"));
+  const file = join2(process.cwd(), "package.json");
+  const pkg = JSON.parse(readFileSync2(file, "utf8"));
   const tags = execFileSync("git", ["tag", "--list"], { encoding: "utf8" }).split("\n").filter(Boolean);
   const stableOnly = env.GITHUB_REF_NAME === (env.BRANCH_RELEASE ?? "main");
   const { pkg: pinned, pinned: specs } = pinDependencies(pkg, pins, tags, stableOnly);

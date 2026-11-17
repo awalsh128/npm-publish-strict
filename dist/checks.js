@@ -1,11 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONVENTIONAL_HEADER, MIN_NPM } from "./constants.js";
+import { CONVENTIONAL_HEADER, MIN_NPM, PLACEHOLDER_VERSION } from "./constants.js";
 import { LINKS } from "./links.js";
-import { PLACEHOLDER_VERSION } from "./placeholder.js";
 import { atLeast } from "./semver.js";
 import { findLockfileDir } from "./workspace.js";
-export { PLACEHOLDER_VERSION };
 /** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
 export function repoSlug(repository) {
     const url = typeof repository === "string" ? repository : repository?.url;

@@ -7,13 +7,15 @@ import { fileURLToPath } from "node:url";
 import { setOutput } from "@actions/core";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
 import { generateNotes } from "@semantic-release/release-notes-generator";
+import { isPrerelease } from "./dist/semver.js";
 
+const { defaultTagFormat } = JSON.parse(readFileSync(new URL("data/metadata.json", import.meta.url), "utf8"));
 const docsScript = process.env.DOCS_SCRIPT ?? "docs:api";
 const docsDir = process.env.DOCS_DIR ?? "docs/api";
 const baseline = process.env.BASELINE_COMMIT?.trim();
 // A repository with several packages tags each with its own format and versions each from the
 // commits that touch its paths (COMMIT_PATHS, one per line; empty means every commit counts).
-const tagFormat = process.env.TAG_FORMAT?.trim() || "v${version}";
+const tagFormat = process.env.TAG_FORMAT?.trim() || defaultTagFormat;
 const commitPaths = (process.env.COMMIT_PATHS ?? "").split("\n").map((p) => p.trim().replace(/\/+$/, "")).filter(Boolean);
 const hasPins = Boolean(process.env.PIN_DEPENDENCIES?.trim());
 const touchesPaths = (hash) =>
@@ -52,7 +54,7 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
     tag: nextRelease.gitTag,
     "package-name": name,
     channel: nextRelease.channel ?? "",
-    prerelease: /-/.test(nextRelease.version) ? "true" : "false",
+    prerelease: isPrerelease(nextRelease.version) ? "true" : "false",
     "release-type": nextRelease.type,
     "git-head": nextRelease.gitHead,
     published: urlOf(/npm/i) ? "true" : "false",

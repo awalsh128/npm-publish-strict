@@ -3,11 +3,19 @@ import { readJson } from "./data.js";
 interface Metadata {
   npmRegistry: string;
   minNpm: string;
+  placeholderVersion: string;
+  defaultTagFormat: string;
 }
 
 const metadata = readJson<Metadata>("metadata.json");
 
 export const NPM_REGISTRY: string = metadata.npmRegistry;
+
+/** The version package.json keeps; semantic-release writes the real one in CI. */
+export const PLACEHOLDER_VERSION: string = metadata.placeholderVersion;
+
+/** The tag format used when the `tag-format` input is empty. */
+export const DEFAULT_TAG_FORMAT: string = metadata.defaultTagFormat;
 
 /** First npm version that supports trusted publishing. */
 export const MIN_NPM: string = metadata.minNpm;

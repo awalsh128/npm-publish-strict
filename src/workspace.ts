@@ -1,11 +1,8 @@
 import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { PLACEHOLDER_VERSION } from "./placeholder.js";
-import { latestVersion } from "./semver.js";
+import { PLACEHOLDER_VERSION } from "./constants.js";
+import { latestVersion, pinRange, tagPrefix, VERSION_VARIABLE } from "./semver.js";
 import type { PackageJson } from "./types.js";
-
-/** The text semantic-release replaces with the version in a tag format. */
-const VERSION_VARIABLE = "${version}";
 
 /** An internal dependency whose placeholder version is replaced by its latest released version. */
 export interface PinSpec {
@@ -45,10 +42,11 @@ export function splitList(value: string): string[] {
 export function parsePins(value: string): PinSpec[] {
   return splitList(value).map((line) => {
     const [name, format, ...rest] = line.split("=").map((part) => part.trim());
-    if (!name || !format || rest.length > 0 || !format.endsWith(VERSION_VARIABLE)) {
+    const prefix = format ? tagPrefix(format) : null;
+    if (!name || prefix === null || rest.length > 0) {
       throw new Error(`Input 'pin-dependencies' must be 'name=tag-format' lines ending in ${VERSION_VARIABLE}, not '${line}'.`);
     }
-    return { name, tagPrefix: format.slice(0, -VERSION_VARIABLE.length) };
+    return { name, tagPrefix: prefix };
   });
 }
 
@@ -77,7 +75,7 @@ export function pinDependencies(
       if (!version) {
         throw new Error(`'${pin.name}' has no release tagged '${pin.tagPrefix}<version>', so '${pkg.name}' can't depend on it yet. Release it first.`);
       }
-      deps[pin.name] = pinned[pin.name] = `^${version}`;
+      deps[pin.name] = pinned[pin.name] = pinRange(version);
     }
   }
   return { pkg: result, pinned };

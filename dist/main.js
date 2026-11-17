@@ -42095,6 +42095,8 @@ function renderTemplate(name, values = {}) {
 // src/constants.ts
 var metadata = readJson("metadata.json");
 var NPM_REGISTRY = metadata.npmRegistry;
+var PLACEHOLDER_VERSION = metadata.placeholderVersion;
+var DEFAULT_TAG_FORMAT = metadata.defaultTagFormat;
 var MIN_NPM = metadata.minNpm;
 var COMMIT_TYPES = readJson("commit-types.json");
 var CONVENTIONAL_HEADER = new RegExp(
@@ -42206,17 +42208,17 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { existsSync } from "node:fs";
 import { dirname as dirname2, join as join3, relative, resolve } from "node:path";
 
-// src/placeholder.ts
-var PLACEHOLDER_VERSION = "0.0.0-semantically-released";
-
 // src/semver.ts
 var import_semver = __toESM(require_semver2(), 1);
+var VERSION_VARIABLE = "${version}";
 function atLeast(actual, min) {
   return import_semver.default.valid(actual) !== null && import_semver.default.gte(actual, min);
 }
+function tagPrefix(format) {
+  return format.endsWith(VERSION_VARIABLE) ? format.slice(0, -VERSION_VARIABLE.length) : null;
+}
 
 // src/workspace.ts
-var VERSION_VARIABLE = "${version}";
 function findLockfileDir(cwd, root) {
   const top = resolve(root);
   let dir = resolve(cwd);
@@ -42233,10 +42235,11 @@ function splitList(value) {
 function parsePins(value) {
   return splitList(value).map((line) => {
     const [name, format, ...rest] = line.split("=").map((part) => part.trim());
-    if (!name || !format || rest.length > 0 || !format.endsWith(VERSION_VARIABLE)) {
+    const prefix = format ? tagPrefix(format) : null;
+    if (!name || prefix === null || rest.length > 0) {
       throw new Error(`Input 'pin-dependencies' must be 'name=tag-format' lines ending in ${VERSION_VARIABLE}, not '${line}'.`);
     }
-    return { name, tagPrefix: format.slice(0, -VERSION_VARIABLE.length) };
+    return { name, tagPrefix: prefix };
   });
 }
 
@@ -42259,7 +42262,7 @@ function readInputs(env) {
     candidateBranch: input("candidate-branch", "staging"),
     baselineCommit: input("baseline-commit"),
     workingDirectory: input("working-directory", "."),
-    tagFormat: input("tag-format", "v${version}"),
+    tagFormat: input("tag-format", DEFAULT_TAG_FORMAT),
     commitPaths: splitList(input("commit-paths")),
     pinDependencies: input("pin-dependencies"),
     githubToken,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atLeast, latestVersion } from "../src/semver.js";
+import { atLeast, isPrerelease, latestVersion, pinRange, tagPrefix, versionFromTag } from "../src/semver.js";
 
 describe("atLeast", () => {
   it.each([
@@ -38,5 +38,45 @@ describe("latestVersion", () => {
 
   it("no matching tag returns null", () => {
     expect(latestVersion(tags, "none-v", true)).toBeNull();
+  });
+});
+
+describe("isPrerelease", () => {
+  it.each([
+    ["1.0.0-rc.1", true],
+    ["1.0.0", false],
+    ["1.0.0+build-1", false],
+  ])("%s returns %s", (version, expected) => {
+    expect(isPrerelease(version)).toBe(expected);
+  });
+});
+
+describe("pinRange", () => {
+  it("a version returns a caret range", () => {
+    expect(pinRange("1.2.3")).toBe("^1.2.3");
+  });
+});
+
+describe("tagPrefix", () => {
+  it.each([
+    ["v${version}", "v"],
+    ["base-v${version}", "base-v"],
+    ["${version}", ""],
+    ["base-v", null],
+    ["v${version}-x", null],
+  ])("%s returns %s", (format, expected) => {
+    expect(tagPrefix(format)).toBe(expected);
+  });
+});
+
+describe("versionFromTag", () => {
+  it.each([
+    ["base-v1.2.3", "base-v", "1.2.3"],
+    ["base-v1.0.0-rc.1", "base-v", "1.0.0-rc.1"],
+    ["other-v1.2.3", "base-v", null],
+    ["base-vx", "base-v", null],
+    ["base-vv1.2.3", "base-v", null],
+  ])("%s with prefix %s returns %s", (tag, prefix, expected) => {
+    expect(versionFromTag(tag, prefix)).toBe(expected);
   });
 });
