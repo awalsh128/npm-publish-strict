@@ -1,11 +1,10 @@
-// Bundles the action's entry point after tsc has emitted dist/, so dist/main.js carries @octokit
-// and runs before any install. The other dist/*.js files stay as tsc wrote them (pin.js is run on
-// its own by release.config.mjs).
+// Bundles the action's two entry points after tsc has emitted dist/: main.js runs before any
+// install, and pin.js is run on its own by release.config.mjs, so each carries its dependencies.
 import { build } from "esbuild";
 
 await build({
-  entryPoints: ["src/main.ts"],
-  outfile: "dist/main.js",
+  entryPoints: ["src/main.ts", "src/pin.ts"],
+  outdir: "dist",
   bundle: true,
   platform: "node",
   target: "node24",

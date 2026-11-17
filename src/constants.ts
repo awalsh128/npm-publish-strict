@@ -2,7 +2,7 @@ import { readJson } from "./data.js";
 
 interface Metadata {
   npmRegistry: string;
-  minNpm: number[];
+  minNpm: string;
 }
 
 const metadata = readJson<Metadata>("metadata.json");
@@ -10,7 +10,7 @@ const metadata = readJson<Metadata>("metadata.json");
 export const NPM_REGISTRY: string = metadata.npmRegistry;
 
 /** First npm version that supports trusted publishing. */
-export const MIN_NPM: readonly number[] = metadata.minNpm;
+export const MIN_NPM: string = metadata.minNpm;
 
 /**
  * One commit type, from data/commit-types.json. That file is the only list of types: it drives this

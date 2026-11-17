@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PLACEHOLDER_VERSION } from "../src/checks.js";
 import {
-  compareVersions,
   findLockfileDir,
   latestVersion,
   parsePins,
@@ -60,24 +59,13 @@ describe("parsePins", () => {
   });
 });
 
-describe("compareVersions", () => {
-  it.each([
-    ["1.2.3", "1.2.4", -1],
-    ["1.10.0", "1.9.0", 1],
-    ["2.0.0", "2.0.0", 0],
-    ["1.0.0-rc.1", "1.0.0", -1],
-    ["1.0.0-rc.2", "1.0.0-rc.10", -1],
-    ["1.0.0-rc.1", "1.0.0-rc.1.1", -1],
-  ])("%s against %s has sign %s", (a, b, sign) => {
-    expect(Math.sign(compareVersions(a, b))).toBe(sign);
-  });
-
-  it("a non-version throws", () => {
-    expect(() => compareVersions("x", "1.0.0")).toThrow("Not a version: 'x'");
-  });
-});
-
 describe("latestVersion", () => {
+  it("candidates are ordered numerically and a release is above its candidates", () => {
+    const tags = ["v1.0.0-rc.2", "v1.0.0-rc.10", "v1.0.0"];
+    expect(latestVersion(tags.slice(0, 2), "v", false)).toBe("1.0.0-rc.10");
+    expect(latestVersion(tags, "v", false)).toBe("1.0.0");
+  });
+
   const tags = ["base-v1.0.0", "base-v1.2.0", "base-v1.10.0", "base-v2.0.0-rc.1", "other-v9.0.0", "base-vnext", "v3.0.0"];
 
   it("stable only returns the highest release", () => {

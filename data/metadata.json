@@ -1,4 +1,4 @@
 {
   "npmRegistry": "https://registry.npmjs.org",
-  "minNpm": [11, 5, 1]
+  "minNpm": "11.5.1"
 }

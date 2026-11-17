@@ -39,8 +39,10 @@ describe("atLeast", () => {
     ["12.0.0", true],
     ["11.5.0", false],
     ["10.9.2", false],
+    ["11.5.1-beta.1", false],
+    ["not a version", false],
   ])("%s against 11.5.1 returns %s", (version, expected) => {
-    expect(atLeast(version, [11, 5, 1])).toBe(expected);
+    expect(atLeast(version, "11.5.1")).toBe(expected);
   });
 });
 
