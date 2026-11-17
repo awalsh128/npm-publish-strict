@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getIDToken } from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import { NPM_REGISTRY } from "./constants.js";
 function readPackage(cwd) {
@@ -17,14 +18,13 @@ async function exchangeNpmToken(env, name) {
     const requestUrl = env.ACTIONS_ID_TOKEN_REQUEST_URL;
     if (!requestUrl)
         return { ok: false, status: 0, message: "no OIDC token available" };
-    const url = new URL(requestUrl);
-    url.searchParams.set("audience", `npm:${new URL(NPM_REGISTRY).hostname}`);
-    const idRes = await fetch(url, {
-        headers: { Accept: "application/json", Authorization: `Bearer ${env.ACTIONS_ID_TOKEN_REQUEST_TOKEN ?? ""}` },
-    });
-    if (!idRes.ok)
-        return { ok: false, status: idRes.status, message: "GitHub would not issue an OIDC token" };
-    const { value } = (await idRes.json());
+    let value;
+    try {
+        value = await getIDToken(`npm:${new URL(NPM_REGISTRY).hostname}`);
+    }
+    catch (error) {
+        return { ok: false, status: 0, message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}` };
+    }
     const res = await fetch(`${NPM_REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escapeName(name)}`, {
         method: "POST",
         headers: { Accept: "application/json", Authorization: `Bearer ${value}` },
