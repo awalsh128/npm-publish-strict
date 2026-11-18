@@ -38062,12 +38062,27 @@ var Version = class _Version {
   /** The version in `text`, or null unless `text` is exactly a valid version (no `v`, no whitespace). */
   static parse(text) {
     const parsed = import_semver.default.parse(text);
-    const exact = parsed && [parsed.version, ...parsed.build.length > 0 ? [parsed.build.join(".")] : []].join("+");
+    const exact = parsed && [
+      parsed.version,
+      ...parsed.build.length > 0 ? [parsed.build.join(".")] : []
+    ].join("+");
     return exact === text ? new _Version(text) : null;
   }
   /** True for a prerelease such as `1.0.0-rc.1`; a hyphen in build metadata (`1.0.0+a-b`) does not count. */
   get isPrerelease() {
     return import_semver.default.prerelease(this.value) !== null;
+  }
+  /** The major number, such as 2 for `2.0.0-rc.1`. */
+  get major() {
+    return import_semver.default.major(this.value);
+  }
+  /** `major.minor.patch` without prerelease or build metadata, such as `2.0.0` for `2.0.0-rc.1`. */
+  get core() {
+    return [
+      import_semver.default.major(this.value),
+      import_semver.default.minor(this.value),
+      import_semver.default.patch(this.value)
+    ].join(".");
   }
   /** True when this version is at least `min`. */
   atLeast(min) {
