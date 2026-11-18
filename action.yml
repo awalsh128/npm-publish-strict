@@ -15,64 +15,14 @@ inputs:
       the npm trusted publisher), so you can confirm a fix without releasing anything.
     required: false
     default: "release"
-  dry-run:
-    description: "Run the release without tagging, publishing, or creating a GitHub Release."
-    required: false
-    default: "false"
   baseline-commit:
     description: >-
       Commit (SHA) from which Conventional Commits are enforced and releases are analyzed. Earlier
       history is ignored. Leave empty to enforce the whole history.
     required: false
     default: ""
-  working-directory:
-    description: "Directory of the package to release, relative to the workspace."
-    required: false
-    default: "."
-  tag-format:
-    description: >-
-      semantic-release tag format. Give each package of a repository its own, such as
-      'my-package-v${version}'; the default 'v${version}' suits a repository with one package.
-    required: false
-    default: "v${version}"
-  commit-paths:
-    description: >-
-      Paths (relative to the repository root, one per line or comma separated) whose commits version
-      this package. Empty means every commit counts. For repositories with several packages.
-    required: false
-    default: ""
-  pin-dependencies:
-    description: >-
-      Internal dependencies to publish at real versions, one 'name=tag-format' per line, such as
-      '@scope/base=base-v${version}'. A dependency whose version is the placeholder is replaced
-      with ^ and the latest released version taken from the dependency's tags. Fails when it has
-      no release yet.
-    required: false
-    default: ""
-  docs-script:
-    description: "npm script that builds the API docs (typedoc). Must exist in the consumer package.json."
-    required: false
-    default: "docs:api"
-  docs-dir:
-    description: "Directory the docs script writes to; exposed through the docs-dir output when a release happens."
-    required: false
-    default: "docs/api"
-  release-branch:
-    description: "Branch that publishes to npm and cuts official releases."
-    required: false
-    default: "main"
-  candidate-branch:
-    description: "Branch that cuts release candidates (-rc.N) with a tag and GitHub prerelease only."
-    required: false
-    default: "staging"
-  git-credentials:
-    description: >-
-      Optional 'user:token' used to push the release tag, e.g. a GitHub App token when the default
-      token is restricted from creating tags. Defaults to the github-token.
-    required: false
-    default: ""
   github-token:
-    description: "Token for the GitHub API (releases, issue comments)."
+    description: "Token for the GitHub API (releases, issue comments) and for pushing the release tag."
     required: false
     default: ${{ github.token }}
 
@@ -84,7 +34,7 @@ outputs:
   version:
     description: "Released version; empty when nothing was released."
   tag:
-    description: "Git tag of the release, formatted by tag-format; empty when nothing was released."
+    description: "Git tag of the release (v<version>); empty when nothing was released."
   package-name:
     description: "Name of the released package from its package.json; empty when nothing was released."
   channel:
@@ -104,7 +54,7 @@ outputs:
   release-notes:
     description: "Markdown release notes of the release; empty when nothing was released."
   docs-dir:
-    description: "Directory holding the built API docs; empty when nothing was released."
+    description: "Directory holding the built API docs (docs/api); empty when nothing was released."
 
 runs:
   using: node24

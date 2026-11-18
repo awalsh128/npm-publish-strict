@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { getIDToken } from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import { NPM_REGISTRY } from "./constants.js";
-import type { Context, ExchangeResult, PackageJson } from "./types.js";
+import type { Context, ExchangeResult, Mode, PackageJson } from "./types.js";
 
 
 function readPackage(cwd: string): PackageJson | null {
@@ -36,8 +36,8 @@ async function exchangeNpmToken(env: Context["env"], name: string): Promise<Exch
   return { ok: res.ok && !!body.token, status: res.status, message: body.message ?? res.statusText };
 }
 
-/** Builds the context for the real environment. */
-export function buildContext(env: Context["env"] = process.env, cwd = process.cwd()): Context {
+/** Builds the context for the real environment, with the action's `mode` and `baseline-commit` inputs. */
+export function buildContext(mode: Mode, baseline: string, env: Context["env"] = process.env, cwd = process.cwd()): Context {
   /** stdout of a git command in the repository, or null when it fails. */
   const git = (args: string[]): string | null => {
     try {
@@ -49,20 +49,14 @@ export function buildContext(env: Context["env"] = process.env, cwd = process.cw
   return {
     env,
     cwd,
-    root: git(["rev-parse", "--show-toplevel"]) ?? cwd,
+    mode,
     branch: env.GITHUB_REF_NAME,
     repository: env.GITHUB_REPOSITORY,
-    releaseBranch: env.RELEASE_BRANCH ?? "main",
-    candidateBranch: env.CANDIDATE_BRANCH ?? "staging",
-    docsScript: env.DOCS_SCRIPT ?? "docs:api",
-    baseline: env.BASELINE_COMMIT?.trim() || undefined,
+    baseline: baseline || undefined,
     pkg: readPackage(cwd),
     shallow() {
-      try {
-        return execFileSync("git", ["rev-parse", "--is-shallow-repository"], { cwd, encoding: "utf8" }).trim() === "true";
-      } catch {
-        return null;
-      }
+      const out = git(["rev-parse", "--is-shallow-repository"]);
+      return out === null ? null : out === "true";
     },
     npmVersion() {
       try {

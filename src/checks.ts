@@ -1,23 +1,36 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { Check, Context, PackageJson } from "./types.js";
-import { CONVENTIONAL_HEADER, MIN_NPM, PLACEHOLDER_VERSION } from "./constants.js";
+import { basename, extname, join } from "node:path";
+import type { Check, CheckResult, Context, PackageJson } from "./types.js";
+import {
+  CANDIDATE_BRANCH,
+  CONVENTIONAL_HEADER,
+  DOCS_SCRIPT,
+  MIN_NPM,
+  PLACEHOLDER_VERSION,
+  RELEASE_BRANCH,
+} from "./constants.js";
 import { LINKS } from "./links.js";
-import { atLeast } from "./semver.js";
-import { findLockfileDir } from "./workspace.js";
+import { Version } from "./semver.js";
 
-/** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
+/**
+ * Returns `owner/repo` (lower case) from a package.json `repository` URI on github.com or `github:owner/repo`,
+ * or null. scp-style (`git@github.com:o/r`) and bare `owner/repo` are not URIs, so they return null.
+ */
 export function repoSlug(repository: PackageJson["repository"]): string | null {
   const url = typeof repository === "string" ? repository : repository?.url;
-  if (!url) return null;
-  const match =
-    /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
-  return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
+  if (!url || !URL.canParse(url)) return null;
+  const { protocol, hostname, pathname } = new URL(url);
+  if (protocol !== "github:" && hostname !== "github.com") return null;
+  const [owner, repo = ""] = pathname.replace(/^\//, "").split("/");
+  const name = repo.endsWith(".git") ? repo.slice(0, -".git".length) : repo;
+  return owner && name ? `${owner}/${name}`.toLowerCase() : null;
 }
 
 /** The workflow file name from GITHUB_WORKFLOW_REF; defaults to release.yml. */
 export function workflowFile(env: Context["env"]): string {
-  return /\.github\/workflows\/([^@]+)@/.exec(env.GITHUB_WORKFLOW_REF ?? "")?.[1] ?? "release.yml";
+  // GITHUB_WORKFLOW_REF is `owner/repo/.github/workflows/<file>@<ref>`.
+  const [path = ""] = (env.GITHUB_WORKFLOW_REF ?? "").split("@");
+  return basename(path) || "release.yml";
 }
 
 /** `uses:` lines that are neither local, docker, nor pinned to a 40-character commit SHA. */
@@ -34,27 +47,29 @@ export function findUnpinnedActions(text: string, file: string): string[] {
 function listWorkflowFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { recursive: true, withFileTypes: true })
-    .filter((e) => e.isFile() && /\.ya?ml$/.test(e.name))
+    .filter((e) => e.isFile() && [".yml", ".yaml"].includes(extname(e.name)))
     .map((e) => join(e.parentPath, e.name));
 }
 
 /** True when this run publishes to npm (the official release branch, including its dry runs). */
-const publishes = (ctx: Context): boolean => ctx.branch === ctx.releaseBranch;
+const publishes = (ctx: Context): boolean => ctx.branch === RELEASE_BRANCH;
 
 export const checks: readonly Check[] = [
   {
     id: "branch",
     title: "Release from an allowed branch",
+    // Check mode never releases, so it may run from any branch, such as a pull request's.
+    applies: (ctx) => ctx.mode === "release",
     run: (ctx) =>
-      ctx.branch === ctx.releaseBranch || ctx.branch === ctx.candidateBranch
+      ctx.branch === RELEASE_BRANCH || ctx.branch === CANDIDATE_BRANCH
         ? null
         : {
-            problem: `Releases run only from '${ctx.releaseBranch}' (official) or '${ctx.candidateBranch}' (release candidates), not '${ctx.branch}'.`,
+            problem: `Releases run only from '${RELEASE_BRANCH}' (official) or '${CANDIDATE_BRANCH}' (release candidates), not '${ctx.branch}'.`,
             automated: [],
             manual: [
               "Edit the workflow that calls this action so its trigger is limited to those branches:",
-              `  on:\n    push:\n      branches: [${ctx.releaseBranch}, ${ctx.candidateBranch}]`,
-              "Or set the `release-branch` / `candidate-branch` inputs to the branches you use.",
+              `  on:\n    push:\n      branches: [${RELEASE_BRANCH}, ${CANDIDATE_BRANCH}]`,
+              "To verify a fix from another branch, run the action with `mode: check` instead.",
             ],
             links: [],
           },
@@ -63,17 +78,22 @@ export const checks: readonly Check[] = [
     id: "package-files",
     title: "package.json and package-lock.json exist",
     run: (ctx) => {
-      // Workspaces keep one package-lock.json at the repository root, above the package.
-      const missing = [
-        ...(existsSync(join(ctx.cwd, "package.json")) ? [] : ["package.json"]),
-        ...(findLockfileDir(ctx.cwd, ctx.root) ? [] : ["package-lock.json"]),
-      ];
+      const missing = ["package.json", "package-lock.json"].filter(
+        (file) => !existsSync(join(ctx.cwd, file)),
+      );
       return missing.length === 0
         ? null
         : {
             problem: `Missing: ${missing.join(", ")}.`,
-            automated: [{ label: "Create the lockfile and stage it", command: "npm install --package-lock-only && git add package-lock.json" }],
-            manual: ["Make sure an `actions/checkout` step runs before this action and that these files are committed, not git-ignored."],
+            automated: [
+              {
+                label: "Create the lockfile and stage it",
+                command: "npm install --package-lock-only && git add package-lock.json",
+              },
+            ],
+            manual: [
+              "Make sure an `actions/checkout` step runs before this action and that these files are committed, not git-ignored.",
+            ],
             links: [LINKS.checkout],
           };
     },
@@ -86,7 +106,9 @@ export const checks: readonly Check[] = [
         ? null
         : {
             problem: `"version" is "${ctx.pkg.version ?? "(missing)"}". Releases never commit, so it must stay the placeholder; semantic-release writes the real version in CI.`,
-            automated: [{ label: "Reset the version", command: `npm pkg set version=${PLACEHOLDER_VERSION}` }],
+            automated: [
+              { label: "Reset the version", command: `npm pkg set version=${PLACEHOLDER_VERSION}` },
+            ],
             manual: ["Commit the change."],
             links: [LINKS.semanticRelease],
           },
@@ -101,9 +123,12 @@ export const checks: readonly Check[] = [
       return {
         problem: slug
           ? `"repository" is ${slug} but this workflow runs in ${ctx.repository}. npm provenance and trusted publishing require them to match.`
-          : `"repository" is missing or is not a GitHub URL.`,
+          : `"repository" is missing or is not a github.com URL.`,
         automated: [
-          { label: "Set the repository", command: `npm pkg set repository.type=git repository.url=git+https://github.com/${ctx.repository}.git` },
+          {
+            label: "Set the repository",
+            command: `npm pkg set repository.type=git repository.url=git+https://github.com/${ctx.repository}.git`,
+          },
         ],
         manual: ["Commit the change."],
         links: [LINKS.provenance, LINKS.packageJson],
@@ -114,17 +139,20 @@ export const checks: readonly Check[] = [
     id: "package-docs-script",
     title: "package.json has the API docs script",
     run: (ctx) =>
-      !ctx.pkg || ctx.pkg.scripts?.[ctx.docsScript]
+      !ctx.pkg || ctx.pkg.scripts?.[DOCS_SCRIPT]
         ? null
         : {
-            problem: `npm script "${ctx.docsScript}" is missing. The release builds API docs with it before tagging.`,
+            problem: `npm script "${DOCS_SCRIPT}" is missing. The release builds API docs with it before tagging.`,
             automated: [
               { label: "Install TypeDoc", command: "npm install --save-dev typedoc" },
-              { label: "Add the script", command: `npm pkg set "scripts.${ctx.docsScript}=typedoc --out docs/api src/index.ts"` },
+              {
+                label: "Add the script",
+                command: `npm pkg set "scripts.${DOCS_SCRIPT}=typedoc --out docs/api src/index.ts"`,
+              },
             ],
             manual: [
-              "Adjust the entry point (src/index.ts) and output directory to your project, or set the `docs-script` and `docs-dir` inputs.",
-              `Run \`npm run ${ctx.docsScript}\` locally to confirm it works, then commit.`,
+              "Adjust the entry point (src/index.ts) to your project; keep the output in docs/api.",
+              `Run \`npm run ${DOCS_SCRIPT}\` locally to confirm it works, then commit.`,
             ],
             links: [LINKS.typedoc],
           },
@@ -137,8 +165,12 @@ export const checks: readonly Check[] = [
         ? null
         : {
             problem: `"files" is missing or empty, so the published package contents are unpredictable.`,
-            automated: [{ label: "List the build output (adjust the path)", command: "npm pkg set 'files[]=dist'" }],
-            manual: ["Check with `npm pack --dry-run` that the tarball holds only what you intend to publish, then commit."],
+            automated: [
+              { label: "List the build output (adjust the path)", command: "npm pkg set 'files[]=dist'" },
+            ],
+            manual: [
+              "Check with `npm pack --dry-run` that the tarball holds only what you intend to publish, then commit.",
+            ],
             links: [LINKS.packageJson],
           },
   },
@@ -162,7 +194,8 @@ export const checks: readonly Check[] = [
       !existsSync(join(ctx.cwd, "CHANGELOG.md"))
         ? null
         : {
-            problem: "CHANGELOG.md exists. Releases never commit, so tags and GitHub Releases are the version history and the file would go stale.",
+            problem:
+              "CHANGELOG.md exists. Releases never commit, so tags and GitHub Releases are the version history and the file would go stale.",
             automated: [{ label: "Remove it", command: "git rm CHANGELOG.md" }],
             manual: ["Commit the removal."],
             links: [],
@@ -172,9 +205,8 @@ export const checks: readonly Check[] = [
     id: "actions-pinned",
     title: "GitHub Actions are pinned to commit SHAs",
     run: (ctx) => {
-      // Workflows live at the repository root, which is above the package in a workspace.
-      const unpinned = listWorkflowFiles(join(ctx.root, ".github")).flatMap((f) =>
-        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.root.length + 1)),
+      const unpinned = listWorkflowFiles(join(ctx.cwd, ".github")).flatMap((f) =>
+        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.cwd.length + 1)),
       );
       return unpinned.length === 0
         ? null
@@ -182,7 +214,10 @@ export const checks: readonly Check[] = [
             problem: `${unpinned.length} action reference(s) are not pinned to a full 40-character commit SHA.`,
             details: unpinned,
             automated: [
-              { label: "Pin every workflow (resolves each tag to its SHA and keeps the tag as a comment)", command: "npx --yes pin-github-action .github/workflows/*.yml" },
+              {
+                label: "Pin every workflow (resolves each tag to its SHA and keeps the tag as a comment)",
+                command: "npx --yes pin-github-action .github/workflows/*.yml",
+              },
             ],
             manual: [
               "Review the diff, then commit.",
@@ -221,10 +256,18 @@ export const checks: readonly Check[] = [
         ? null
         : {
             problem: `baseline-commit '${ctx.baseline}' is not a commit in the history of '${ctx.branch}'.`,
-            details: ["It must be a full or abbreviated commit SHA that is an ancestor of the commit being released."],
+            details: [
+              "It must be a full or abbreviated commit SHA that is an ancestor of the commit being released.",
+            ],
             automated: [
-              { label: "Print the current commit, to start enforcing from now on", command: "git rev-parse HEAD" },
-              { label: "Check that a commit is in this branch's history", command: `git merge-base --is-ancestor <sha> ${ctx.branch ?? "HEAD"} && echo ok` },
+              {
+                label: "Print the current commit, to start enforcing from now on",
+                command: "git rev-parse HEAD",
+              },
+              {
+                label: "Check that a commit is in this branch's history",
+                command: `git merge-base --is-ancestor <sha> ${ctx.branch ?? "HEAD"} && echo ok`,
+              },
             ],
             manual: [
               "Set the action's `baseline-commit` input to a SHA on this branch, for example the last commit with a non-conventional message:",
@@ -248,12 +291,24 @@ export const checks: readonly Check[] = [
         problem: ctx.baseline
           ? `${bad.length} commit(s) after baseline ${ctx.baseline.slice(0, 7)} do not follow Conventional Commits, so semantic-release cannot version them.`
           : `${bad.length} commit(s) do not follow Conventional Commits, so semantic-release cannot version them.`,
-        details: [...shown, ...(bad.length > shown.length ? [`...and ${bad.length - shown.length} more`] : [])],
+        details: [
+          ...shown,
+          ...(bad.length > shown.length ? [`...and ${bad.length - shown.length} more`] : []),
+        ],
         automated: [
           ...(head
-            ? [{ label: "Start enforcing from the current commit instead, leaving earlier history alone (then set `baseline-commit` to this SHA)", command: `echo ${head}` }]
+            ? [
+                {
+                  label:
+                    "Start enforcing from the current commit instead, leaving earlier history alone (then set `baseline-commit` to this SHA)",
+                  command: `echo ${head}`,
+                },
+              ]
             : []),
-          { label: "List the offending commits locally", command: `npx --yes @commitlint/cli@latest --extends @commitlint/config-conventional --from ${ctx.baseline ?? "$(git rev-list --max-parents=0 HEAD)"} --to HEAD` },
+          {
+            label: "List the offending commits locally",
+            command: `npx --yes @commitlint/cli@latest --extends @commitlint/config-conventional --from ${ctx.baseline ?? "$(git rev-list --max-parents=0 HEAD)"} --to HEAD`,
+          },
         ],
         manual: [
           `Either set the action's \`baseline-commit\` input to a commit at or after the last offender, so only newer commits are enforced:`,
@@ -293,7 +348,10 @@ export const checks: readonly Check[] = [
         : {
             problem: `${ctx.repository} is private. This action publishes with npm provenance (a signed attestation linking the package to its source and workflow), which npm only issues for public repositories.`,
             automated: [
-              { label: "Make the repository public (irreversible for forks and stars; read the docs first)", command: `gh repo edit ${ctx.repository} --visibility public --accept-visibility-change-consequences` },
+              {
+                label: "Make the repository public (irreversible for forks and stars; read the docs first)",
+                command: `gh repo edit ${ctx.repository} --visibility public --accept-visibility-change-consequences`,
+              },
             ],
             manual: [
               `Go to https://github.com/${ctx.repository}/settings.`,
@@ -309,7 +367,7 @@ export const checks: readonly Check[] = [
     applies: publishes,
     run: (ctx) => {
       const version = ctx.npmVersion();
-      return version && atLeast(version, MIN_NPM)
+      return version && Version.parse(version)?.atLeast(MIN_NPM)
         ? null
         : {
             problem: `npm ${version ?? "(not found)"} is older than ${MIN_NPM}, the first version with trusted publishing.`,
@@ -340,19 +398,24 @@ export const checks: readonly Check[] = [
         problem: `npm did not accept this workflow's identity as a trusted publisher of "${name}".`,
         details: [
           `npm said: ${result.status} ${result.message}`,
-          exists === false ? `"${name}" is not on the npm registry yet.` : `"${name}" exists on the npm registry.`,
+          exists === false
+            ? `"${name}" is not on the npm registry yet.`
+            : `"${name}" exists on the npm registry.`,
           "npm does not validate a trusted publisher when it is saved, so a typo only shows up here.",
         ],
         automated: [
           {
-            label: "Create the trust relationship from your machine (needs npm login with 2FA, and npm 11.10 or later)",
+            label:
+              "Create the trust relationship from your machine (needs npm login with 2FA, and npm 11.10 or later)",
             command: `npm trust github ${name} --file ${file} --repo ${owner}/${repo} --yes`,
           },
           { label: "Check what is configured", command: `npm trust list ${name}` },
         ],
         manual: [
           ...(exists === false
-            ? [`Publish a first version of "${name}" yourself so the package exists (\`npm login\`, then \`npm publish --access public\`); trusted publishers are configured per existing package.`]
+            ? [
+                `Publish a first version of "${name}" yourself so the package exists (\`npm login\`, then \`npm publish --access public\`); trusted publishers are configured per existing package.`,
+              ]
             : []),
           "Go to https://www.npmjs.com and sign in as a maintainer of the package.",
           `Click your avatar > Packages > ${name} > Settings.`,
@@ -367,3 +430,14 @@ export const checks: readonly Check[] = [
     },
   },
 ];
+
+/** Runs every applicable check; never stops at the first failure so the user sees everything at once. */
+export async function runChecks(ctx: Context, list: readonly Check[] = checks): Promise<CheckResult[]> {
+  const results: CheckResult[] = [];
+  for (const check of list) {
+    if (check.applies && !check.applies(ctx)) continue;
+    const outcome = await check.run(ctx);
+    results.push({ check, failures: outcome === null ? [] : Array.isArray(outcome) ? outcome : [outcome] });
+  }
+  return results;
+}

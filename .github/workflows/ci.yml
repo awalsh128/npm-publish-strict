@@ -26,10 +26,7 @@ jobs:
         shell: bash
         run: npm ci --ignore-scripts
 
-      - name: Typecheck
-        shell: bash
-        run: npm run typecheck
-
+      # npm test builds first, and the build typechecks.
       - name: Test
         shell: bash
         run: npm test
@@ -39,67 +36,89 @@ jobs:
         shell: bash
         run: npm run check:dist
 
-  # Runs this checkout of the action (uses: ./) inside a real workflow, against fixture repos built by
-  # test/make-fixture.ts. Release branch is set to a name nothing matches so these runs are
-  # release-candidate runs: no npm, OIDC or tag access is needed.
-  action-e2e:
+  # Runs this checkout of the action inside a real workflow, against fixture repos built by
+  # test/make-fixture.ts. The action runs from the repository root, so each fixture is moved into the
+  # workspace and the action is checked out beside it. Check mode never releases, so no npm, OIDC or
+  # tag access is needed. Skipped on main, where check mode also verifies the npm trusted publisher.
+  action-e2e-case:
+    if: ${{ github.ref != 'refs/heads/main' }}
+    name: action-e2e (${{ matrix.name }})
     runs-on: ubuntu-24.04
     needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: healthy repository passes
+            scenario: healthy
+            use-baseline: false
+            failed-checks: ""
+          - name: legacy commits fail without a baseline
+            scenario: legacy-commits
+            use-baseline: false
+            failed-checks: commit-messages
+          - name: legacy commits pass with a baseline
+            scenario: legacy-commits
+            use-baseline: true
+            failed-checks: ""
     steps:
-      - name: Checkout repository
+      - name: Checkout action
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: .action-under-test
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
-      - name: Build fixtures
-        id: fixtures
-        shell: bash
-        run: |
-          set -euo pipefail
-          for scenario in healthy legacy-commits; do
-            baseline="$(node test/make-fixture.ts "$RUNNER_TEMP/$scenario" "$scenario" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME")"
-            echo "${scenario//-/_}_baseline=$baseline" >> "$GITHUB_OUTPUT"
-          done
-
-      - name: Healthy repository passes
-        uses: ./
-        with:
-          mode: check
-          working-directory: ${{ runner.temp }}/healthy
-          release-branch: none
-          candidate-branch: ${{ github.ref_name }}
-
-      - name: Legacy commits fail without a baseline
-        id: legacy
-        continue-on-error: true
-        uses: ./
-        with:
-          mode: check
-          working-directory: ${{ runner.temp }}/legacy-commits
-          release-branch: none
-          candidate-branch: ${{ github.ref_name }}
-
-      - name: Assert the failure named the right check
+      - name: Build fixture in the workspace
+        id: fixture
         shell: bash
         env:
-          OUTCOME: ${{ steps.legacy.outcome }}
-          FAILED: ${{ steps.legacy.outputs.failed-checks }}
+          SCENARIO: ${{ matrix.scenario }}
         run: |
           set -euo pipefail
-          [[ "$OUTCOME" == "failure" ]] || { echo "::error::expected the legacy run to fail, got $OUTCOME"; exit 1; }
-          [[ "$FAILED" == "commit-messages" ]] || { echo "::error::expected failed-checks=commit-messages, got '$FAILED'"; exit 1; }
+          fixture="$RUNNER_TEMP/fixture"
+          baseline="$(node .action-under-test/test/make-fixture.ts "$fixture" "$SCENARIO" "$GITHUB_REPOSITORY" main)"
+          shopt -s dotglob
+          mv "$fixture"/* "$GITHUB_WORKSPACE"/
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
 
-      - name: Legacy commits pass with a baseline
-        uses: ./
+      - name: Run the action in check mode
+        id: action
+        continue-on-error: true
+        uses: ./.action-under-test
         with:
           mode: check
-          working-directory: ${{ runner.temp }}/legacy-commits
-          release-branch: none
-          candidate-branch: ${{ github.ref_name }}
-          baseline-commit: ${{ steps.fixtures.outputs.legacy_commits_baseline }}
+          baseline-commit: ${{ matrix.use-baseline && steps.fixture.outputs.baseline || '' }}
+
+      - name: Assert the outcome and failed checks
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          FAILED: ${{ steps.action.outputs.failed-checks }}
+          EXPECTED: ${{ matrix.failed-checks }}
+        run: |
+          set -euo pipefail
+          expected_outcome="$([[ -n "$EXPECTED" ]] && echo failure || echo success)"
+          [[ "$OUTCOME" == "$expected_outcome" ]] || { echo "::error::expected outcome $expected_outcome, got $OUTCOME"; exit 1; }
+          [[ "$FAILED" == "$EXPECTED" ]] || { echo "::error::expected failed-checks='$EXPECTED', got '$FAILED'"; exit 1; }
+
+  # The single required status check for the matrix above (rulesets match check names exactly).
+  # Passes when every case passed, or when the matrix was skipped on main.
+  action-e2e:
+    if: ${{ always() }}
+    needs: action-e2e-case
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every case to pass
+        shell: bash
+        env:
+          RESULT: ${{ needs.action-e2e-case.result }}
+        run: |
+          [[ "$RESULT" == "success" || "$RESULT" == "skipped" ]] || { echo "::error::action-e2e cases: $RESULT"; exit 1; }
 
   commitlint:
     if: ${{ github.event_name == 'pull_request' }}

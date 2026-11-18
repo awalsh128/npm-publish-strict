@@ -1,7 +1,6 @@
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseOutputs } from "./helpers.ts";
 // @ts-expect-error release.config.mjs is plain JavaScript without types.
@@ -70,61 +69,13 @@ async function loadConfig(env: Record<string, string>) {
   return (await import("../release.config.mjs")).default as typeof config;
 }
 
-describe("release.config.mjs for a package in a repository with several", () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it("tag format defaults to v${version}", async () => {
-    expect((await loadConfig({})).tagFormat).toBe("v${version}");
+describe("release.config.mjs conventions", () => {
+  it("tagFormat with no environment returns v${version}", () => {
+    expect(config.tagFormat).toBe("v${version}");
   });
 
-  it("TAG_FORMAT sets the tag format", async () => {
-    expect((await loadConfig({ TAG_FORMAT: "pkg-v${version}" })).tagFormat).toBe("pkg-v${version}");
-  });
-
-  it("COMMIT_PATHS keeps only commits that touch those paths", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "paths-"));
-    const git = (...args: string[]) =>
-      execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: dir, encoding: "utf8" }).trim();
-    git("init", "-q", "-b", "main");
-    const commitFile = (path: string, message: string) => {
-      mkdirSync(dirname(join(dir, path)), { recursive: true });
-      writeFileSync(join(dir, path), message);
-      git("add", "-A");
-      git("commit", "-q", "-m", message);
-      return git("rev-parse", "HEAD");
-    };
-    const mine = commitFile("packages/a/x.ts", "feat: change a");
-    const other = commitFile("packages/ab/x.ts", "fix: change ab");
-    const sibling = commitFile("packages/b/x.ts", "fix: change b");
-
-    const original = process.cwd();
-    process.chdir(dir);
-    try {
-      const filtered = await loadConfig({ COMMIT_PATHS: "packages/a/" });
-      const analyzed = (filtered.plugins as Plugin[]).find((p) => typeof p === "object" && "analyzeCommits" in p)!;
-      const commits = [mine, other, sibling].map((hash) => commit(hash, git("log", "-1", "--format=%s", hash)));
-      // Only the feat commit counts: the fix commits touch other packages, including one whose
-      // directory name merely starts with the same letters.
-      expect(await analyzed.analyzeCommits!({}, { ...context, commits })).toBe("minor");
-      const onlyFixes = commits.slice(1);
-      expect(await analyzed.analyzeCommits!({}, { ...context, commits: onlyFixes })).toBeNull();
-    } finally {
-      process.chdir(original);
-    }
-  });
-
-  it("without PIN_DEPENDENCIES no pin step runs", async () => {
-    const plugins = (await loadConfig({})).plugins as unknown[];
-    expect(JSON.stringify(plugins)).not.toContain("pin.js");
-  });
-
-  it("PIN_DEPENDENCIES runs the pin script before the npm plugin prepares the package", async () => {
-    const plugins = (await loadConfig({ PIN_DEPENDENCIES: "@s/base=base-v${version}" })).plugins as unknown[];
-    const text = plugins.map((p) => JSON.stringify(p));
-    const pin = text.findIndex((p) => p.includes("pin.js"));
-    const npm = text.findIndex((p) => p.includes("@semantic-release/npm"));
-    expect(pin).toBeGreaterThan(-1);
-    expect(pin).toBeLessThan(npm);
+  it("branches with no environment returns staging as rc and main", () => {
+    expect(config.branches).toEqual([{ name: "staging", prerelease: "rc" }, "main"]);
   });
 });
 
@@ -134,7 +85,7 @@ describe("release.config.mjs success step", () => {
   const releaseContext = (cwd: string) => ({
     ...context,
     cwd,
-    nextRelease: { ...context.nextRelease, channel: "rc", version: "1.1.0-rc.1", gitTag: "pkg-v1.1.0-rc.1", notes: "## Notes\n- a" },
+    nextRelease: { ...context.nextRelease, channel: "rc", version: "1.1.0-rc.1", gitTag: "v1.1.0-rc.1", notes: "## Notes\n- a" },
     releases: [{ pluginName: "@semantic-release/github", name: "GitHub release", url: "https://github.com/o/r/releases/tag/x" }],
   });
 
@@ -152,7 +103,7 @@ describe("release.config.mjs success step", () => {
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@s/pkg" }));
     const out = parseOutputs(await outputsOf(releaseContext(dir)));
     expect(out).toMatchObject({
-      tag: "pkg-v1.1.0-rc.1",
+      tag: "v1.1.0-rc.1",
       "package-name": "@s/pkg",
       channel: "rc",
       prerelease: "true",

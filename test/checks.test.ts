@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { checks, findUnpinnedActions, repoSlug } from "../src/checks.js";
+import { checks, findUnpinnedActions, repoSlug, runChecks, workflowFile } from "../src/checks.js";
 import { COMMIT_TYPES, CONVENTIONAL_HEADER } from "../src/constants.js";
-import { runChecks } from "../src/run.js";
 import type { Context } from "../src/types.js";
-import { join } from "node:path";
 import { makeContext, makeRepo } from "./helpers.js";
 
 const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1";
@@ -16,9 +14,9 @@ async function failedIds(ctx: Context): Promise<string[]> {
 describe("repoSlug", () => {
   it.each([
     ["git+https://github.com/Owner/Repo.git", "owner/repo"],
-    ["git@github.com:owner/repo.git", "owner/repo"],
+    ["https://github.com/owner/repo", "owner/repo"],
+    ["git+ssh://git@github.com/owner/repo.git", "owner/repo"],
     ["github:owner/repo", "owner/repo"],
-    ["owner/repo", "owner/repo"],
   ])("string %s returns %s", (url, expected) => {
     expect(repoSlug(url)).toBe(expected);
   });
@@ -27,8 +25,26 @@ describe("repoSlug", () => {
     expect(repoSlug({ url: "https://github.com/o/r" })).toBe("o/r");
   });
 
-  it.each([[undefined], ["https://gitlab.com/o/r"]])("%s returns null", (value) => {
+  it.each([
+    [undefined],
+    ["https://gitlab.com/o/r"],
+    ["https://github.com/o"],
+    ["git@github.com:owner/repo.git"],
+    ["owner/repo"],
+  ])("%s returns null", (value) => {
     expect(repoSlug(value)).toBeNull();
+  });
+});
+
+describe("workflowFile", () => {
+  it("workflow ref returns the file name", () => {
+    expect(workflowFile({ GITHUB_WORKFLOW_REF: "o/r/.github/workflows/publish.yaml@refs/heads/main" })).toBe(
+      "publish.yaml",
+    );
+  });
+
+  it("missing workflow ref returns release.yml", () => {
+    expect(workflowFile({})).toBe("release.yml");
   });
 });
 
@@ -69,6 +85,10 @@ describe("checks", () => {
 
   it("unlisted branch fails branch", async () => {
     expect(await failedIds(makeContext({ branch: "feature/x" }))).toContain("branch");
+  });
+
+  it("unlisted branch in check mode skips branch", async () => {
+    expect(await failedIds(makeContext({ branch: "feature/x", mode: "check" }))).not.toContain("branch");
   });
 
   it("missing lockfile fails package-files", async () => {
@@ -202,31 +222,5 @@ describe("baseline", () => {
   it("every check has a unique id", () => {
     const ids = checks.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-describe("checks in a workspace", () => {
-  /** A repository root with the lockfile and workflows, and a package below it. */
-  const workspace = (files: Record<string, string> = {}) => {
-    const root = makeRepo({ "packages/pkg/package.json": "{}", ...files });
-    return { root, cwd: join(root, "packages/pkg") };
-  };
-
-  it("lockfile at the repository root passes package-files", async () => {
-    const { root, cwd } = workspace();
-    expect(await failedIds(makeContext({ cwd, root }))).not.toContain("package-files");
-  });
-
-  it("no lockfile anywhere fails package-files and names it", async () => {
-    const root = makeRepo({ "packages/pkg/package.json": "{}" });
-    const ctx = makeContext({ cwd: join(root, "packages/pkg"), root: join(root, "packages/pkg") });
-    const failed = (await runChecks(ctx)).find((r) => r.check.id === "package-files");
-    expect(failed?.failures[0]?.problem).toBe("Missing: package-lock.json.");
-  });
-
-  it("an unpinned workflow at the repository root fails actions-pinned with a root-relative path", async () => {
-    const { root, cwd } = workspace({ ".github/workflows/ci.yml": "steps:\n  - uses: actions/checkout@v4\n" });
-    const result = (await runChecks(makeContext({ cwd, root }))).find((r) => r.check.id === "actions-pinned");
-    expect(result?.failures[0]?.details).toEqual([".github/workflows/ci.yml:2: actions/checkout@v4"]);
   });
 });

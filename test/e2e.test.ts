@@ -17,7 +17,10 @@ interface Run {
   stdout: string;
 }
 
-/** Runs the action in check mode as a release-candidate branch, so no network checks apply. */
+/**
+ * Runs the action in check mode on a pull request branch, so no network checks apply. `inputs`
+ * replaces the INPUT_* variables, which the runner always sets from action.yml.
+ */
 function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useBaseline = false): Run {
   const root = mkdtempSync(join(tmpdir(), "e2e-"));
   const fixture = createFixture(join(root, "repo"), scenario, "o/r", "staging");
@@ -31,14 +34,13 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
-      GITHUB_REF_NAME: "staging",
+      GITHUB_REF_NAME: "7/merge",
       GITHUB_REPOSITORY: "o/r",
       GITHUB_OUTPUT: outputFile,
       GITHUB_STEP_SUMMARY: summaryFile,
       INPUT_MODE: "check",
-      "INPUT_RELEASE-BRANCH": "main",
-      "INPUT_CANDIDATE-BRANCH": "staging",
-      ...(useBaseline ? { "INPUT_BASELINE-COMMIT": fixture.baseline } : {}),
+      "INPUT_BASELINE-COMMIT": useBaseline ? fixture.baseline : "",
+      "INPUT_GITHUB-TOKEN": "",
       ...inputs,
     },
   });
@@ -94,17 +96,6 @@ describe("dist/main.js in check mode", () => {
   it("shallow clone fails full-history only", () => {
     const run = runAction("shallow");
     expect(run.failedChecks).toBe("full-history");
-  });
-
-  it("package below the repository root with the lockfile and workflows at the root exits 0", () => {
-    const run = runAction("workspace", { "INPUT_WORKING-DIRECTORY": "packages/pkg" });
-    expect(run.status).toBe(0);
-    expect(run.failedChecks).toBe("");
-  });
-
-  it("the same workspace pointed at the root package fails package-docs-script", () => {
-    const run = runAction("workspace");
-    expect(run.failedChecks).toContain("package-docs-script");
   });
 
   it("unknown mode exits 1 with an error annotation", () => {

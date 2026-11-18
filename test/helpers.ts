@@ -14,12 +14,9 @@ export function makeContext(overrides: Partial<Context> = {}): Context {
       GITHUB_WORKFLOW_REF: "o/r/.github/workflows/release.yml@refs/heads/main",
     },
     cwd,
-    root: cwd,
+    mode: "release",
     branch: "main",
     repository: "o/r",
-    releaseBranch: "main",
-    candidateBranch: "staging",
-    docsScript: "docs:api",
     baseline: undefined,
     pkg: {
       name: "pkg",
