@@ -32,7 +32,7 @@
     "semantic-release": "^25.0.9"
   },
   "devDependencies": {
-    "@actions/core": "^2.0.3",
+    "@actions/core": "^3.0.1",
     "@awalsh128/winston-github-actions": "^1.0.0",
     "@awalsh128/winston-host": "^1.1.0",
     "@commitlint/cli": "^21.2.4",
