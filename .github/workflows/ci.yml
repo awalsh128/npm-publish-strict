@@ -31,10 +31,11 @@ jobs:
         shell: bash
         run: npm test
 
-      # The action runs from the committed dist/, so it must match the sources.
+      # The action runs from the committed dist/, so it must match the sources. npm test just rebuilt it,
+      # so only the diff is left to check (npm run check:dist rebuilds first, for local use).
       - name: Check dist/ is up to date
         shell: bash
-        run: npm run check:dist
+        run: git diff --exit-code -- dist
 
       # Consumer releases install this action with --omit=dev and then load release.config.mjs, so
       # every package it imports must be a runtime dependency. Same files as the release bundle.

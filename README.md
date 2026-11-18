@@ -148,6 +148,6 @@ outputs are empty when nothing was released.
 
 ```bash
 npm ci
-npm run typecheck && npm test   # unit tests, then end-to-end runs of dist/ on fixture repos
+npm test             # typechecks and builds dist/, then runs the unit tests and end-to-end runs of dist/ on fixture repos
 npm run build        # typechecks, then bundles src/ into dist/ with esbuild; commit dist/ with every src/ change
 ```
