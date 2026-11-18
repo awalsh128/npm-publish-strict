@@ -25,7 +25,7 @@ export function failureMarkdown(check: Check, failure: Failure): string {
 }
 
 /** Markdown footer telling the user how to confirm their fixes. */
-export function verifyMarkdown(env: Context["env"]): string {
+function verifyMarkdown(env: Context["env"]): string {
   return renderTemplate("verify.md", { workflow: env.GITHUB_WORKFLOW ?? "this workflow" }) + "\n";
 }
 
