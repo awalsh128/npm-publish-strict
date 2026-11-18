@@ -1,9 +1,9 @@
+import { runChecks } from "./checks.js";
 import { setOutput } from "@actions/core";
 import { buildContext } from "./context.js";
 import { actionRoot, readInputs, release } from "./release.js";
 import { createLogger } from "./logger.js";
 import { report } from "./report.js";
-import { runChecks } from "./run.js";
 
 async function main(): Promise<void> {
   const log = createLogger();

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checks, findUnpinnedActions, repoSlug } from "../src/checks.js";
+import { checks, findUnpinnedActions, repoSlug, runChecks } from "../src/checks.js";
 import { COMMIT_TYPES, CONVENTIONAL_HEADER } from "../src/constants.js";
-import { runChecks } from "../src/run.js";
 import type { Context } from "../src/types.js";
 import { makeContext, makeRepo } from "./helpers.js";
 

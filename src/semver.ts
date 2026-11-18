@@ -13,7 +13,8 @@ export class Version {
   static parse(text: string): Version | null {
     const parsed = semver.parse(text);
     // semver.parse accepts a leading `v` and whitespace and its `version` drops build metadata, so rebuild the exact text.
-    const exact = parsed && [parsed.version, ...(parsed.build.length > 0 ? [parsed.build.join(".")] : [])].join("+");
+    const exact =
+      parsed && [parsed.version, ...(parsed.build.length > 0 ? [parsed.build.join(".")] : [])].join("+");
     return exact === text ? new Version(text) : null;
   }
 

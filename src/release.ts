@@ -26,13 +26,15 @@ export function actionRoot(moduleUrl: string = import.meta.url): string {
 export function readInputs(env: Env): Inputs {
   const input = (name: string): string => (env[`INPUT_${name.toUpperCase()}`] ?? "").trim();
   const mode = input("mode");
-  if (mode !== "release" && mode !== "check") throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
+  if (mode !== "release" && mode !== "check")
+    throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
   return { mode, baselineCommit: input("baseline-commit"), githubToken: input("github-token") };
 }
 
 function run(command: string, args: string[], options: { cwd?: string; env?: Env } = {}): void {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
-  if (result.status !== 0) throw new Error(`'${command} ${args.join(" ")}' failed with exit code ${result.status}.`);
+  if (result.status !== 0)
+    throw new Error(`'${command} ${args.join(" ")}' failed with exit code ${result.status}.`);
 }
 
 /** Environment for semantic-release and the plugins it runs (release.config.mjs reads part of it). */
@@ -59,8 +61,12 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
 export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string): void {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
   run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--prefix", actionPath], { cwd });
-  run(join(actionPath, "node_modules", ".bin", "semantic-release"), ["--extends", join(actionPath, "release.config.mjs")], {
-    cwd,
-    env: releaseEnv(inputs, env),
-  });
+  run(
+    join(actionPath, "node_modules", ".bin", "semantic-release"),
+    ["--extends", join(actionPath, "release.config.mjs")],
+    {
+      cwd,
+      env: releaseEnv(inputs, env),
+    },
+  );
 }
