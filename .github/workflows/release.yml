@@ -57,11 +57,14 @@ jobs:
           cache: npm
 
       # Install scripts stay off: this job can mint GitHub tokens.
-      # typedoc has its own lockfile (scripts/ops/typedoc) because it doesn't support TypeScript 7 yet.
+      # Runtime dependencies only, as consumers get them: releasing needs semantic-release and its plugins,
+      # not the build and test tools. --omit=optional also skips the TypeScript that cosmiconfig
+      # optionally peers on. typedoc has its own lockfile (scripts/ops/typedoc) because it doesn't
+      # support TypeScript 7 yet.
       - name: Install dependencies
         shell: bash
         run: |
-          npm ci --ignore-scripts
+          npm ci --ignore-scripts --omit=dev --omit=optional
           npm ci --ignore-scripts --prefix scripts/ops/typedoc
 
       # GitHub rejects tag creation by GITHUB_TOKEN here (the tag ruleset), so the tag is pushed
