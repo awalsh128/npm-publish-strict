@@ -51,7 +51,7 @@ function listWorkflowFiles(dir: string): string[] {
     .map((e) => join(e.parentPath, e.name));
 }
 
-/** True when this run publishes to npm (the official release branch, including its dry runs). */
+/** True when this run publishes to npm, which only the official release branch does. */
 const publishes = (ctx: Context): boolean => ctx.branch === RELEASE_BRANCH;
 
 export const checks: readonly Check[] = [
