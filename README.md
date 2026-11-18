@@ -7,15 +7,16 @@ An opinionated NPM publish GitHub Action. It runs [semantic-release](https://sem
 (OIDC, no token). When the repository doesn't meet its preconditions, it stops before releasing and
 tells you exactly how to fix each one.
 
-Written in TypeScript (`src/`), compiled to `dist/`.
+Written in TypeScript (`src/`) and bundled into `dist/` with esbuild.
 
 ## Preconditions
 
-Every run checks these, and reports all failures at once, not just the first:
+Every run checks these, and reports all failures at once, not just the first. The branch check applies
+only in `release` mode, and the last row only on the release branch:
 
 | Check | Why |
 | --- | --- |
-| Runs on `main` (official release, npm publish) or `staging` (`-rc.N` candidate, tag and GitHub prerelease only) | Predictable release flow |
+| In `release` mode, runs on `main` (official release, npm publish) or `staging` (`-rc.N` candidate, tag and GitHub prerelease only) | Predictable release flow |
 | `package.json` and `package-lock.json` exist | Reproducible installs |
 | `version` is the placeholder `0.0.0-semantically-released` | Releases never commit |
 | `repository` matches the GitHub repository running the workflow | npm provenance and trusted publishing |
