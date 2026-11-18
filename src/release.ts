@@ -56,11 +56,12 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
  * Installs dependencies and runs semantic-release with the bundled config.
  * Install scripts stay off: this job can mint npm (OIDC) and GitHub credentials, so a dependency's
  * install script must never run with them. semantic-release is not bundled into dist/ because it
- * loads its plugins dynamically, so it is installed from this action's own lockfile instead.
+ * loads its plugins dynamically, so it is installed from this action's own lockfile instead, without
+ * dev or optional packages (cosmiconfig optionally peers on TypeScript, about 30 MB, which it doesn't need).
  */
 export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string): void {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
-  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--prefix", actionPath], { cwd });
+  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--omit=optional", "--prefix", actionPath], { cwd });
   run(
     join(actionPath, "node_modules", ".bin", "semantic-release"),
     ["--extends", join(actionPath, "release.config.mjs")],

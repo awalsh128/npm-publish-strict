@@ -37,8 +37,9 @@ jobs:
         shell: bash
         run: git diff --exit-code -- dist
 
-      # Consumer releases install this action with --omit=dev and then load release.config.mjs, so
-      # every package it imports must be a runtime dependency. Same files as the release bundle.
+      # Consumer releases install this action with --omit=dev --omit=optional (see src/release.ts) and
+      # then load release.config.mjs, so every package it imports must be a runtime dependency. Same
+      # files as the release bundle.
       - name: Load release.config.mjs from a runtime-only install
         shell: bash
         run: |
@@ -46,7 +47,7 @@ jobs:
           dir="$RUNNER_TEMP/runtime-install"
           mkdir -p "$dir"
           git archive HEAD action.yml dist data release.config.mjs package.json package-lock.json | tar -x -C "$dir"
-          npm ci --ignore-scripts --omit=dev --no-audit --no-fund --prefix "$dir"
+          npm ci --ignore-scripts --omit=dev --omit=optional --no-audit --no-fund --prefix "$dir"
           node --input-type=module -e 'await import(process.argv[1]); console.log("release.config.mjs loads")' "$dir/release.config.mjs"
 
       # Releases build the API docs before tagging (release.config.mjs), so a broken docs:api fails here first.
