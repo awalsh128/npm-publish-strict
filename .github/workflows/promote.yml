@@ -5,6 +5,12 @@ name: Promote staging to main
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm-major:
+        description: "Required for a major release: the version being released (e.g. 2.0.0)"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -50,6 +56,28 @@ jobs:
         with:
           sha: ${{ steps.staging.outputs.sha }}
           token: ${{ github.token }}
+
+      # The official release is the latest candidate on staging without its -rc.N suffix. A major one
+      # can strand v1 users (there is no maintenance branch), so it needs the version typed in.
+      - name: Confirm a major release
+        env:
+          STAGING_SHA: ${{ steps.staging.outputs.sha }}
+          CONFIRM: ${{ inputs.confirm-major }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate="$(git tag --merged "$STAGING_SHA" --list 'v*-rc.*' --sort=-v:refname | head -n1)"
+          official="$(git tag --merged origin/main --list 'v*' --sort=-v:refname | grep -v -- - | head -n1 || true)"
+          next="${candidate#v}"; next="${next%-rc.*}"
+          echo "Latest official: ${official:-none}; next: ${next:-none}"
+          [[ -n "$next" ]] || exit 0
+          current="${official#v}"; current_major="${current%%.*}"
+          if (( ${next%%.*} > ${current_major:-0} )); then
+            [[ "$CONFIRM" == "$next" ]] || {
+              echo "::error::$next is a major release. Run Promote again with confirm-major set to $next."
+              exit 1
+            }
+          fi
 
       - name: Fast-forward main to staging
         env:
