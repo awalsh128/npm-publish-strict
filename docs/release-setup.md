@@ -17,6 +17,14 @@ feature branch --PR (CI must pass)--> staging --promote.yml (fast-forward)--> ma
   `.github/rulesets/`). Its tokens are minted per job under the trust policies in
   `.github/chainguard/`, so no private key is stored.
 
+## Release switch
+
+Releases are off unless the repository variable `RELEASES_ENABLED` is `true` (Settings > Secrets and
+variables > Actions > Variables). While it isn't, a push to `staging` or a promote still runs CI and
+moves the branch, but the release job is skipped, so nothing is tagged or published. A manual dry run
+(`dry-run: true`) is always allowed. Turn releases on with
+`gh variable set RELEASES_ENABLED --body true`, and off again with `--body false`.
+
 ## One-time setup
 
 1. [Install the Octo STS app](https://github.com/apps/octo-sts/installations/new) on this
