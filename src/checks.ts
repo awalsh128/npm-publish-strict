@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, extname, join } from "node:path";
 import type { Check, CheckResult, Context, PackageJson } from "./types.js";
 import {
   CANDIDATE_BRANCH,
@@ -12,18 +12,25 @@ import {
 import { LINKS } from "./links.js";
 import { Version } from "./semver.js";
 
-/** Returns `owner/repo` (lower case) from a package.json `repository` value, or null. */
+/**
+ * Returns `owner/repo` (lower case) from a package.json `repository` URI on github.com or `github:owner/repo`,
+ * or null. scp-style (`git@github.com:o/r`) and bare `owner/repo` are not URIs, so they return null.
+ */
 export function repoSlug(repository: PackageJson["repository"]): string | null {
   const url = typeof repository === "string" ? repository : repository?.url;
-  if (!url) return null;
-  const match =
-    /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
-  return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
+  if (!url || !URL.canParse(url)) return null;
+  const { protocol, hostname, pathname } = new URL(url);
+  if (protocol !== "github:" && hostname !== "github.com") return null;
+  const [owner, repo = ""] = pathname.replace(/^\//, "").split("/");
+  const name = repo.endsWith(".git") ? repo.slice(0, -".git".length) : repo;
+  return owner && name ? `${owner}/${name}`.toLowerCase() : null;
 }
 
 /** The workflow file name from GITHUB_WORKFLOW_REF; defaults to release.yml. */
 export function workflowFile(env: Context["env"]): string {
-  return /\.github\/workflows\/([^@]+)@/.exec(env.GITHUB_WORKFLOW_REF ?? "")?.[1] ?? "release.yml";
+  // GITHUB_WORKFLOW_REF is `owner/repo/.github/workflows/<file>@<ref>`.
+  const [path = ""] = (env.GITHUB_WORKFLOW_REF ?? "").split("@");
+  return basename(path) || "release.yml";
 }
 
 /** `uses:` lines that are neither local, docker, nor pinned to a 40-character commit SHA. */
@@ -40,7 +47,7 @@ export function findUnpinnedActions(text: string, file: string): string[] {
 function listWorkflowFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { recursive: true, withFileTypes: true })
-    .filter((e) => e.isFile() && /\.ya?ml$/.test(e.name))
+    .filter((e) => e.isFile() && [".yml", ".yaml"].includes(extname(e.name)))
     .map((e) => join(e.parentPath, e.name));
 }
 
@@ -116,7 +123,7 @@ export const checks: readonly Check[] = [
       return {
         problem: slug
           ? `"repository" is ${slug} but this workflow runs in ${ctx.repository}. npm provenance and trusted publishing require them to match.`
-          : `"repository" is missing or is not a GitHub URL.`,
+          : `"repository" is missing or is not a github.com URL.`,
         automated: [
           {
             label: "Set the repository",

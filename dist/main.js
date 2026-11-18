@@ -35336,15 +35336,15 @@ var require_file2 = __commonJS({
       _incFile(callback) {
         debug("_incFile", this.filename);
         const ext = path.extname(this._basename);
-        const basename = path.basename(this._basename, ext);
+        const basename2 = path.basename(this._basename, ext);
         const tasks = [];
         if (this.zippedArchive) {
           tasks.push(
             function(cb) {
               const num = this._created > 0 && !this.tailable ? this._created : "";
               this._compressFile(
-                path.join(this.dirname, `${basename}${num}${ext}`),
-                path.join(this.dirname, `${basename}${num}${ext}.gz`),
+                path.join(this.dirname, `${basename2}${num}${ext}`),
+                path.join(this.dirname, `${basename2}${num}${ext}.gz`),
                 cb
               );
             }.bind(this)
@@ -35354,9 +35354,9 @@ var require_file2 = __commonJS({
           function(cb) {
             if (!this.tailable) {
               this._created += 1;
-              this._checkMaxFilesIncrementing(ext, basename, cb);
+              this._checkMaxFilesIncrementing(ext, basename2, cb);
             } else {
-              this._checkMaxFilesTailable(ext, basename, cb);
+              this._checkMaxFilesTailable(ext, basename2, cb);
             }
           }.bind(this)
         );
@@ -35370,9 +35370,9 @@ var require_file2 = __commonJS({
        */
       _getFile() {
         const ext = path.extname(this._basename);
-        const basename = path.basename(this._basename, ext);
+        const basename2 = path.basename(this._basename, ext);
         const isRotation = this.rotationFormat ? this.rotationFormat() : this._created;
-        return !this.tailable && this._created ? `${basename}${isRotation}${ext}` : `${basename}${ext}`;
+        return !this.tailable && this._created ? `${basename2}${isRotation}${ext}` : `${basename2}${ext}`;
       }
       /**
        * Increment the number of files created or checked by this instance.
@@ -35382,14 +35382,14 @@ var require_file2 = __commonJS({
        * @returns {undefined}
        * @private
        */
-      _checkMaxFilesIncrementing(ext, basename, callback) {
+      _checkMaxFilesIncrementing(ext, basename2, callback) {
         if (!this.maxFiles || this._created < this.maxFiles) {
           return setImmediate(callback);
         }
         const oldest = this._created - this.maxFiles;
         const isOldest = oldest !== 0 ? oldest : "";
         const isZipped = this.zippedArchive ? ".gz" : "";
-        const filePath = `${basename}${isOldest}${ext}${isZipped}`;
+        const filePath = `${basename2}${isOldest}${ext}${isZipped}`;
         const target = path.join(this.dirname, filePath);
         fs.unlink(target, callback);
       }
@@ -35404,7 +35404,7 @@ var require_file2 = __commonJS({
        * @returns {undefined}
        * @private
        */
-      _checkMaxFilesTailable(ext, basename, callback) {
+      _checkMaxFilesTailable(ext, basename2, callback) {
         const tasks = [];
         if (!this.maxFiles) {
           return;
@@ -35412,21 +35412,21 @@ var require_file2 = __commonJS({
         const isZipped = this.zippedArchive ? ".gz" : "";
         for (let x = this.maxFiles - 1; x > 1; x--) {
           tasks.push(function(i, cb) {
-            let fileName = `${basename}${i - 1}${ext}${isZipped}`;
+            let fileName = `${basename2}${i - 1}${ext}${isZipped}`;
             const tmppath = path.join(this.dirname, fileName);
             fs.exists(tmppath, (exists) => {
               if (!exists) {
                 return cb(null);
               }
-              fileName = `${basename}${i}${ext}${isZipped}`;
+              fileName = `${basename2}${i}${ext}${isZipped}`;
               fs.rename(tmppath, path.join(this.dirname, fileName), cb);
             });
           }.bind(this, x));
         }
         asyncSeries(tasks, () => {
           fs.rename(
-            path.join(this.dirname, `${basename}${ext}${isZipped}`),
-            path.join(this.dirname, `${basename}1${ext}${isZipped}`),
+            path.join(this.dirname, `${basename2}${ext}${isZipped}`),
+            path.join(this.dirname, `${basename2}1${ext}${isZipped}`),
             callback
           );
         });
@@ -38021,7 +38021,7 @@ var require_dist2 = __commonJS({
 
 // src/checks.ts
 import { existsSync, readdirSync, readFileSync as readFileSync2 } from "node:fs";
-import { join as join2 } from "node:path";
+import { basename, extname, join as join2 } from "node:path";
 
 // src/data.ts
 import { readFileSync } from "node:fs";
@@ -38081,12 +38081,16 @@ var Version = class _Version {
 // src/checks.ts
 function repoSlug(repository) {
   const url = typeof repository === "string" ? repository : repository?.url;
-  if (!url) return null;
-  const match = /github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(url) ?? /^(?:github:)?([^/\s:]+)\/([^/\s]+)$/.exec(url);
-  return match ? `${match[1]}/${match[2]}`.toLowerCase() : null;
+  if (!url || !URL.canParse(url)) return null;
+  const { protocol, hostname, pathname } = new URL(url);
+  if (protocol !== "github:" && hostname !== "github.com") return null;
+  const [owner, repo = ""] = pathname.replace(/^\//, "").split("/");
+  const name = repo.endsWith(".git") ? repo.slice(0, -".git".length) : repo;
+  return owner && name ? `${owner}/${name}`.toLowerCase() : null;
 }
 function workflowFile(env) {
-  return /\.github\/workflows\/([^@]+)@/.exec(env.GITHUB_WORKFLOW_REF ?? "")?.[1] ?? "release.yml";
+  const [path = ""] = (env.GITHUB_WORKFLOW_REF ?? "").split("@");
+  return basename(path) || "release.yml";
 }
 function findUnpinnedActions(text, file) {
   const found = [];
@@ -38099,7 +38103,7 @@ function findUnpinnedActions(text, file) {
 }
 function listWorkflowFiles(dir) {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && /\.ya?ml$/.test(e.name)).map((e) => join2(e.parentPath, e.name));
+  return readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && [".yml", ".yaml"].includes(extname(e.name))).map((e) => join2(e.parentPath, e.name));
 }
 var publishes = (ctx) => ctx.branch === RELEASE_BRANCH;
 var checks = [
@@ -38163,7 +38167,7 @@ var checks = [
       const slug = repoSlug(ctx.pkg.repository);
       if (slug && slug === ctx.repository?.toLowerCase()) return null;
       return {
-        problem: slug ? `"repository" is ${slug} but this workflow runs in ${ctx.repository}. npm provenance and trusted publishing require them to match.` : `"repository" is missing or is not a GitHub URL.`,
+        problem: slug ? `"repository" is ${slug} but this workflow runs in ${ctx.repository}. npm provenance and trusted publishing require them to match.` : `"repository" is missing or is not a github.com URL.`,
         automated: [
           {
             label: "Set the repository",

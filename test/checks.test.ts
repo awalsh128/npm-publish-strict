@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checks, findUnpinnedActions, repoSlug, runChecks } from "../src/checks.js";
+import { checks, findUnpinnedActions, repoSlug, runChecks, workflowFile } from "../src/checks.js";
 import { COMMIT_TYPES, CONVENTIONAL_HEADER } from "../src/constants.js";
 import type { Context } from "../src/types.js";
 import { makeContext, makeRepo } from "./helpers.js";
@@ -14,9 +14,9 @@ async function failedIds(ctx: Context): Promise<string[]> {
 describe("repoSlug", () => {
   it.each([
     ["git+https://github.com/Owner/Repo.git", "owner/repo"],
-    ["git@github.com:owner/repo.git", "owner/repo"],
+    ["https://github.com/owner/repo", "owner/repo"],
+    ["git+ssh://git@github.com/owner/repo.git", "owner/repo"],
     ["github:owner/repo", "owner/repo"],
-    ["owner/repo", "owner/repo"],
   ])("string %s returns %s", (url, expected) => {
     expect(repoSlug(url)).toBe(expected);
   });
@@ -25,8 +25,26 @@ describe("repoSlug", () => {
     expect(repoSlug({ url: "https://github.com/o/r" })).toBe("o/r");
   });
 
-  it.each([[undefined], ["https://gitlab.com/o/r"]])("%s returns null", (value) => {
+  it.each([
+    [undefined],
+    ["https://gitlab.com/o/r"],
+    ["https://github.com/o"],
+    ["git@github.com:owner/repo.git"],
+    ["owner/repo"],
+  ])("%s returns null", (value) => {
     expect(repoSlug(value)).toBeNull();
+  });
+});
+
+describe("workflowFile", () => {
+  it("workflow ref returns the file name", () => {
+    expect(workflowFile({ GITHUB_WORKFLOW_REF: "o/r/.github/workflows/publish.yaml@refs/heads/main" })).toBe(
+      "publish.yaml",
+    );
+  });
+
+  it("missing workflow ref returns release.yml", () => {
+    expect(workflowFile({})).toBe("release.yml");
   });
 });
 
