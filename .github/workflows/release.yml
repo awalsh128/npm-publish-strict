@@ -23,6 +23,10 @@ permissions: {}
 
 jobs:
   release:
+    # Releases are off unless the repository variable RELEASES_ENABLED is 'true' (Settings > Secrets and
+    # variables > Actions > Variables). Every route to a release goes through this job: a staging push,
+    # promote, and a manual run. A dry run tags and publishes nothing, so it is always allowed.
+    if: ${{ vars.RELEASES_ENABLED == 'true' || inputs.dry-run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: release
@@ -57,14 +61,13 @@ jobs:
           cache: npm
 
       # Install scripts stay off: this job can mint GitHub tokens.
-      # Runtime dependencies only, as consumers get them: releasing needs semantic-release and its plugins,
-      # not the build and test tools. --omit=optional also skips the TypeScript that cosmiconfig
-      # optionally peers on. typedoc has its own lockfile (scripts/ops/typedoc) because it doesn't
-      # support TypeScript 7 yet.
+      # All dependencies: typedoc typechecks the sources, so it needs the devDependencies' types
+      # (@types/node, @octokit/rest, vitest). typedoc has its own lockfile (scripts/ops/typedoc)
+      # because it doesn't support TypeScript 7 yet.
       - name: Install dependencies
         shell: bash
         run: |
-          npm ci --ignore-scripts --omit=dev --omit=optional
+          npm ci --ignore-scripts
           npm ci --ignore-scripts --prefix scripts/ops/typedoc
 
       # GitHub rejects tag creation by GITHUB_TOKEN here (the tag ruleset), so the tag is pushed

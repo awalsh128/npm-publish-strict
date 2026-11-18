@@ -35,7 +35,7 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - MUST keep `main` an ancestor of `staging`: update `main` only by fast-forward through `promote.yml`, never by PR merge or a release commit.
 - Open PRs into `staging`. Direct pushes to `staging` and `main` are blocked by rulesets (`.github/rulesets/`).
 - MUST gate every release by CI: candidates release from `ci.yml` after all jobs pass; official releases come only from `promote.yml`.
-- Releases tag, create a GitHub Release, and attest the bundle; they never commit. Setup: `docs/release-setup.md`.
+- Releases tag, create a GitHub Release, and attest the bundle; they never commit. They are off unless the repository variable `RELEASES_ENABLED` is `true`, which `release.yml` checks, so a merge to `staging` or a promote releases nothing until it is turned on. Setup: `docs/release-setup.md`.
 
 ## TypeScript Style
 
