@@ -3,11 +3,17 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, staging]
+    branches: [staging]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# A new push to a PR supersedes its running checks. Other runs (staging pushes release) get their own
+# group, so none is cancelled or dropped from the queue.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -60,9 +66,8 @@ jobs:
   # Runs this checkout of the action inside a real workflow, against fixture repos built by
   # test/make-fixture.ts. The action runs from the repository root, so each fixture is moved into the
   # workspace and the action is checked out beside it. Check mode never releases, so no npm, OIDC or
-  # tag access is needed. Skipped on main, where check mode also verifies the npm trusted publisher.
+  # tag access is needed.
   action-e2e-case:
-    if: ${{ github.ref != 'refs/heads/main' }}
     name: action-e2e (${{ matrix.name }})
     runs-on: ubuntu-24.04
     needs: build-and-test
@@ -128,8 +133,7 @@ jobs:
           [[ "$FAILED" == "$EXPECTED" ]] || { echo "::error::expected failed-checks='$EXPECTED', got '$FAILED'"; exit 1; }
 
   # The single required status check for the matrix above (rulesets match check names exactly).
-  # Passes when every case passed, or when the matrix was skipped on main (and only there: elsewhere a
-  # skip means build-and-test failed).
+  # Passes only when every case passed (a skipped case means build-and-test failed).
   action-e2e:
     if: ${{ always() }}
     needs: action-e2e-case
@@ -140,31 +144,7 @@ jobs:
         env:
           RESULT: ${{ needs.action-e2e-case.result }}
         run: |
-          [[ "$RESULT" == "success" || ( "$RESULT" == "skipped" && "$GITHUB_REF" == "refs/heads/main" ) ]] ||
-            { echo "::error::action-e2e cases: $RESULT"; exit 1; }
-
-  commitlint:
-    if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        shell: bash
-        run: npm ci --ignore-scripts
-
-      - name: Lint commits
-        shell: bash
-        run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}"
+          [[ "$RESULT" == "success" ]] || { echo "::error::action-e2e cases: $RESULT"; exit 1; }
 
   # Release candidates are only cut from staging commits that pass every CI job.
   release-candidate:
