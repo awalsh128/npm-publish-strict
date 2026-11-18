@@ -17,15 +17,16 @@ function latest(versions: readonly Version[]): Version | undefined {
 
 /**
  * The official version is the latest release candidate on staging without its `-rc.N` suffix.
- * Returns null when staging has no candidate, since then there is nothing to promote.
+ * Returns null when there is nothing new to release: staging has no candidate, or its latest one
+ * was already released (main fast-forwards, but the release finds no relevant changes).
  */
 export function planPromotion(
   stagingVersions: readonly Version[],
   mainVersions: readonly Version[],
 ): PromotionPlan | null {
   const candidate = latest(stagingVersions.filter((v) => v.isPrerelease));
-  if (!candidate) return null;
   const official = latest(mainVersions.filter((v) => !v.isPrerelease));
+  if (!candidate || official?.atLeast(candidate.core)) return null;
   return {
     next: candidate.core,
     isMajor: !official || candidate.major > official.major,
