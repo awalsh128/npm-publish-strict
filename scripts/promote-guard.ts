@@ -27,7 +27,7 @@ const plan = planPromotion(
 console.log(
   plan
     ? `Promotion releases ${plan.next}${plan.isMajor ? " (major)" : ""}.`
-    : "No candidate on staging.",
+    : "Nothing new to release: staging has no unreleased candidate. main still fast-forwards.",
 );
 if (plan?.isMajor && process.env.CONFIRM !== plan.next) {
   console.log(

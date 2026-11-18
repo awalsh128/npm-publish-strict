@@ -38,10 +38,19 @@ describe("planPromotion", () => {
     expect(planPromotion(versions("1.0.0-rc.1"), [])?.isMajor).toBe(true);
   });
 
-  it("candidate already promoted returns that version, not major", () => {
+  it("candidate already promoted returns null", () => {
     expect(
       planPromotion(versions("1.2.0-rc.1", "1.2.0"), versions("1.2.0")),
-    ).toEqual({ next: "1.2.0", isMajor: false });
+    ).toBeNull();
+  });
+
+  it("major candidate already promoted returns null", () => {
+    expect(
+      planPromotion(
+        versions("2.0.0-rc.1", "2.0.0"),
+        versions("1.9.0", "2.0.0"),
+      ),
+    ).toBeNull();
   });
 
   it("no candidate on staging returns null", () => {
