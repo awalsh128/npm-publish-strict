@@ -40,7 +40,7 @@ jobs:
   # test/make-fixture.ts. The action runs from the repository root, so each fixture is moved into the
   # workspace and the action is checked out beside it. Check mode never releases, so no npm, OIDC or
   # tag access is needed. Skipped on main, where check mode also verifies the npm trusted publisher.
-  action-e2e:
+  action-e2e-case:
     if: ${{ github.ref != 'refs/heads/main' }}
     name: action-e2e (${{ matrix.name }})
     runs-on: ubuntu-24.04
@@ -105,6 +105,20 @@ jobs:
           expected_outcome="$([[ -n "$EXPECTED" ]] && echo failure || echo success)"
           [[ "$OUTCOME" == "$expected_outcome" ]] || { echo "::error::expected outcome $expected_outcome, got $OUTCOME"; exit 1; }
           [[ "$FAILED" == "$EXPECTED" ]] || { echo "::error::expected failed-checks='$EXPECTED', got '$FAILED'"; exit 1; }
+
+  # The single required status check for the matrix above (rulesets match check names exactly).
+  # Passes when every case passed, or when the matrix was skipped on main.
+  action-e2e:
+    if: ${{ always() }}
+    needs: action-e2e-case
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every case to pass
+        shell: bash
+        env:
+          RESULT: ${{ needs.action-e2e-case.result }}
+        run: |
+          [[ "$RESULT" == "success" || "$RESULT" == "skipped" ]] || { echo "::error::action-e2e cases: $RESULT"; exit 1; }
 
   commitlint:
     if: ${{ github.event_name == 'pull_request' }}
