@@ -53,6 +53,12 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
 }
 
 /**
+ * Flags of the install that puts this action's runtime dependencies in place. ci.yml checks that
+ * release.config.mjs loads from the same install (test/release.test.ts keeps the two in step).
+ */
+export const RUNTIME_INSTALL_FLAGS = ["--ignore-scripts", "--omit=dev", "--omit=optional"] as const;
+
+/**
  * Installs dependencies and runs semantic-release with the bundled config.
  * Install scripts stay off: this job can mint npm (OIDC) and GitHub credentials, so a dependency's
  * install script must never run with them. semantic-release is not bundled into dist/ because it
@@ -61,7 +67,7 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
  */
 export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string): void {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
-  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--omit=optional", "--prefix", actionPath], { cwd });
+  run("npm", ["ci", ...RUNTIME_INSTALL_FLAGS, "--prefix", actionPath], { cwd });
   run(
     join(actionPath, "node_modules", ".bin", "semantic-release"),
     ["--extends", join(actionPath, "release.config.mjs")],

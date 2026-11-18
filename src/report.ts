@@ -29,27 +29,36 @@ function verifyMarkdown(env: Context["env"]): string {
   return renderTemplate("verify.md", { workflow: env.GITHUB_WORKFLOW ?? "this workflow" }) + "\n";
 }
 
-/** Markdown for the whole run. */
-export function summaryMarkdown(env: Context["env"], results: readonly CheckResult[]): string {
-  const failed = results.filter((r) => r.failures.length > 0);
-  if (failed.length === 0) {
+type Failed = CheckResult & { failure: Failure };
+
+const failedOf = (results: readonly CheckResult[]): Failed[] =>
+  results.filter((r): r is Failed => r.failure !== null);
+
+const sectionOf = (r: Failed): string => failureMarkdown(r.check, r.failure);
+
+function summaryFrom(env: Context["env"], results: readonly CheckResult[], sections: readonly string[]): string {
+  if (sections.length === 0) {
     return [renderTemplate("pass-heading.md", { count: results.length }), "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
   }
-  const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
-  return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
+  return [renderTemplate("fail-heading.md", { count: sections.length }), "", ...sections, verifyMarkdown(env)].join("\n");
+}
+
+/** Markdown for the whole run. */
+export function summaryMarkdown(env: Context["env"], results: readonly CheckResult[]): string {
+  return summaryFrom(env, results, failedOf(results).map(sectionOf));
 }
 
 /** Logs results with annotations, and appends them to the job summary. Returns true when all pass. */
 export async function report(ctx: Pick<Context, "env">, results: readonly CheckResult[], log: Log = createLogger()): Promise<boolean> {
-  for (const r of results) log.info(`${r.failures.length ? "✘" : "✔"} ${r.check.title}`);
-  for (const r of results) {
-    for (const failure of r.failures) {
-      const group = log.group(`How to fix: ${r.check.title}`);
-      log.info(failureMarkdown(r.check, failure));
-      group.dispose();
-      log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
-    }
-  }
-  if (process.env.GITHUB_STEP_SUMMARY) await summary.addRaw(summaryMarkdown(ctx.env, results), true).write();
-  return results.every((r) => r.failures.length === 0);
+  for (const r of results) log.info(`${r.failure ? "✘" : "✔"} ${r.check.title}`);
+  const failed = failedOf(results);
+  const sections = failed.map(sectionOf);
+  failed.forEach((r, i) => {
+    const group = log.group(`How to fix: ${r.check.title}`);
+    log.info(sections[i] ?? "");
+    group.dispose();
+    log.error(`${r.check.title} (${r.check.id}): ${r.failure.problem}`);
+  });
+  if (process.env.GITHUB_STEP_SUMMARY) await summary.addRaw(summaryFrom(ctx.env, results, sections), true).write();
+  return failed.length === 0;
 }

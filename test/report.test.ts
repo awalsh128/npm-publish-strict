@@ -31,11 +31,11 @@ describe("failureMarkdown", () => {
 
 describe("summaryMarkdown", () => {
   it("all passing lists every check", () => {
-    expect(summaryMarkdown({}, [{ check, failures: [] }])).toContain("## ✅ All 1 preconditions pass");
+    expect(summaryMarkdown({}, [{ check, failure: null }])).toContain("## ✅ All 1 preconditions pass");
   });
 
   it("failures end with how to verify the fixes", () => {
-    const md = summaryMarkdown({ GITHUB_WORKFLOW: "Release" }, [{ check, failures: [failure] }]);
+    const md = summaryMarkdown({ GITHUB_WORKFLOW: "Release" }, [{ check, failure }]);
     expect(md).toContain("## ❌ 1 precondition(s) failed");
     expect(md).toContain("mode: check");
     expect(md).toContain("Actions > Release > Re-run failed jobs");
@@ -43,7 +43,7 @@ describe("summaryMarkdown", () => {
 });
 
 describe("report", () => {
-  const results: CheckResult[] = [{ check, failures: [failure] }];
+  const results: CheckResult[] = [{ check, failure }];
   const fakeLog = () => {
     const errors: string[] = [];
     return {
@@ -65,6 +65,6 @@ describe("report", () => {
   });
 
   it("success returns true", async () => {
-    expect(await report({ env: {} }, [{ check, failures: [] }], fakeLog().log)).toBe(true);
+    expect(await report({ env: {} }, [{ check, failure: null }], fakeLog().log)).toBe(true);
   });
 });

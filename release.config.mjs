@@ -65,14 +65,13 @@ export default {
     { generateNotes: (config, context) => generateNotes({ ...preset, ...config }, visible(context)) },
     // Trusted publishing (OIDC): no npm token. Candidates and dry runs skip the publish.
     ["@semantic-release/npm", { npmPublish: process.env.NPM_PUBLISH === "true" }],
-    [
-      "@semantic-release/exec",
-      {
-        // Runs after the npm plugin so the docs carry the released version; a docs failure stops the
-        // release before it is tagged.
-        prepareCmd: `npm run -s ${docsScript} -- --gitRevision \${nextRelease.gitTag}`,
+    {
+      // Runs after the npm plugin so the docs carry the released version; a docs failure stops the
+      // release before it is tagged.
+      prepare: (_config, { cwd, nextRelease }) => {
+        execFileSync("npm", ["run", "-s", docsScript, "--", "--gitRevision", nextRelease.gitTag], { cwd, stdio: "inherit" });
       },
-    ],
+    },
     "@semantic-release/github",
     {
       success: (_config, context) => {

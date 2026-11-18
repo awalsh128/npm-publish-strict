@@ -8,7 +8,7 @@ const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1";
 
 /** Failed check ids for a context. */
 async function failedIds(ctx: Context): Promise<string[]> {
-  return (await runChecks(ctx)).filter((r) => r.failures.length > 0).map((r) => r.check.id);
+  return (await runChecks(ctx)).filter((r) => r.failure).map((r) => r.check.id);
 }
 
 describe("repoSlug", () => {
@@ -99,7 +99,7 @@ describe("checks", () => {
 
   it("real version fails package-version with the fix command", async () => {
     const ctx = makeContext({ pkg: { ...makeContext().pkg, version: "1.2.3" } });
-    const failure = (await runChecks(ctx)).find((r) => r.check.id === "package-version")?.failures[0];
+    const failure = (await runChecks(ctx)).find((r) => r.check.id === "package-version")?.failure;
     expect(failure?.automated[0]?.command).toBe("npm pkg set version=0.0.0-semantically-released");
   });
 
@@ -125,7 +125,7 @@ describe("checks", () => {
 
   it("unpinned workflow action fails actions-pinned and lists it", async () => {
     const cwd = makeRepo({ ".github/workflows/ci.yml": "steps:\n  - uses: actions/checkout@v4\n" });
-    const failure = (await runChecks(makeContext({ cwd }))).find((r) => r.check.id === "actions-pinned")?.failures[0];
+    const failure = (await runChecks(makeContext({ cwd }))).find((r) => r.check.id === "actions-pinned")?.failure;
     expect(failure?.details).toEqual([".github/workflows/ci.yml:2: actions/checkout@v4"]);
   });
 
@@ -150,7 +150,7 @@ describe("checks", () => {
 describe("public-repository", () => {
   it("private repository on the release branch fails with navigation steps", async () => {
     const ctx = makeContext({ repoIsPublic: () => Promise.resolve(false) });
-    const failure = (await runChecks(ctx)).find((r) => r.check.id === "public-repository")?.failures[0];
+    const failure = (await runChecks(ctx)).find((r) => r.check.id === "public-repository")?.failure;
     expect(failure?.manual[0]).toBe("Go to https://github.com/o/r/settings.");
   });
 
@@ -170,7 +170,7 @@ describe("trusted-publisher", () => {
       exchangeNpmToken: () => Promise.resolve({ ok: false, status: 404, message: "not found" }),
       packageExists: () => Promise.resolve(false),
     });
-    const failure = (await runChecks(ctx)).find((r) => r.check.id === "trusted-publisher")?.failures[0];
+    const failure = (await runChecks(ctx)).find((r) => r.check.id === "trusted-publisher")?.failure;
     expect(failure?.automated[0]?.command).toBe("npm trust github pkg --file release.yml --repo o/r --yes");
     expect(failure?.manual.join("\n")).toContain("Click your avatar > Packages > pkg > Settings.");
     expect(failure?.manual[0]).toContain("Publish a first version");
@@ -204,7 +204,7 @@ describe("baseline", () => {
 
   it("commit-messages failure suggests the current commit as baseline", async () => {
     const ctx = makeContext({ commits: () => [bad] });
-    const failure = (await runChecks(ctx)).find((r) => r.check.id === "commit-messages")?.failures[0];
+    const failure = (await runChecks(ctx)).find((r) => r.check.id === "commit-messages")?.failure;
     expect(failure?.manual.join("\n")).toContain(`baseline-commit: ${"a".repeat(40)}`);
     expect(failure?.details).toEqual(["bbbbbbb Update readme"]);
   });

@@ -19,13 +19,11 @@
     "test": "npm run build && vitest run",
     "fixture": "node test/make-fixture.ts",
     "check:dist": "npm run build && git diff --exit-code -- dist",
-    "commitlint": "commitlint",
     "docs:api": "scripts/ops/typedoc/node_modules/.bin/typedoc --entryPointStrategy expand --out docs/api src"
   },
   "dependencies": {
     "@actions/core": "^2.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/exec": "^7.1.0",
     "@semantic-release/github": "^12.0.10",
     "@semantic-release/npm": "^13.1.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
