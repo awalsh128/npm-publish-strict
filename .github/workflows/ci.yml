@@ -36,6 +36,13 @@ jobs:
         shell: bash
         run: npm run check:dist
 
+      # Releases build the API docs before tagging (release.config.mjs), so a broken docs:api fails here first.
+      - name: Build API docs
+        shell: bash
+        run: |
+          npm ci --ignore-scripts --prefix scripts/ops/typedoc
+          npm run docs:api
+
   # Runs this checkout of the action inside a real workflow, against fixture repos built by
   # test/make-fixture.ts. The action runs from the repository root, so each fixture is moved into the
   # workspace and the action is checked out beside it. Check mode never releases, so no npm, OIDC or

@@ -1,0 +1,9 @@
+{
+  "name": "npm-publish-strict-typedoc",
+  "private": true,
+  "description": "typedoc for this repo's docs:api script, kept apart because typedoc does not support TypeScript 7 yet. Remove once it does.",
+  "dependencies": {
+    "typedoc": "0.28.20",
+    "typescript": "~6.0.3"
+  }
+}
