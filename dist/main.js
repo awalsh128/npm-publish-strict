@@ -42643,7 +42643,7 @@ function releaseEnv(inputs, env) {
 }
 function release(inputs, env, actionPath, cwd) {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
-  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--prefix", actionPath], { cwd });
+  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--omit=optional", "--prefix", actionPath], { cwd });
   run(
     join4(actionPath, "node_modules", ".bin", "semantic-release"),
     ["--extends", join4(actionPath, "release.config.mjs")],
