@@ -5,6 +5,12 @@ name: Promote staging to main
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm-major:
+        description: "Required for a major release: the version being released (e.g. 2.0.0)"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -50,6 +56,21 @@ jobs:
         with:
           sha: ${{ steps.staging.outputs.sha }}
           token: ${{ github.token }}
+
+      # No install: the script loads the committed dist/semver.js bundle.
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      # A major release can strand users of the previous major (there is no maintenance branch),
+      # so it needs its version typed in.
+      - name: Confirm a major release
+        env:
+          STAGING_SHA: ${{ steps.staging.outputs.sha }}
+          CONFIRM: ${{ inputs.confirm-major }}
+        shell: bash
+        run: node scripts/promote-guard.ts
 
       - name: Fast-forward main to staging
         env:

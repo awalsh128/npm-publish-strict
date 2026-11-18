@@ -2,7 +2,9 @@
   "name": "staging",
   "target": "branch",
   "enforcement": "active",
-  "conditions": { "ref_name": { "include": ["refs/heads/staging"], "exclude": [] } },
+  "conditions": {
+    "ref_name": { "include": ["refs/heads/staging"], "exclude": [] }
+  },
   "bypass_actors": [],
   "rules": [
     { "type": "deletion" },
@@ -22,7 +24,11 @@
       "type": "required_status_checks",
       "parameters": {
         "strict_required_status_checks_policy": false,
-        "required_status_checks": [{ "context": "build-and-test" }, { "context": "action-e2e" }]
+        "required_status_checks": [
+          { "context": "build-and-test" },
+          { "context": "action-e2e" },
+          { "context": "pr-title" }
+        ]
       }
     }
   ]

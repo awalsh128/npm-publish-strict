@@ -31,9 +31,13 @@ subject, so a repository that later takes this name doesn't match.
 
 ## Day to day
 
-1. Branch from `staging`, open a PR into `staging`. `build-and-test` and `action-e2e` must pass.
-2. Merging cuts a release candidate.
-3. To release: Actions > **Promote staging to main** > Run workflow (on `staging`).
+1. Branch from `staging`, open a PR into `staging`. `build-and-test`, `action-e2e` and `pr-title` must pass.
+2. Merging cuts a release candidate. PRs are squash-merged with the PR title and description as the
+   commit message, so the title (linted by `pr-title`) decides the release type: `feat!:` or a
+   `BREAKING CHANGE:` line in the description makes it major.
+3. To release: Actions > **Promote staging to main** > Run workflow (on `staging`). A major release
+   stops unless `confirm-major` is set to its version (e.g. `2.0.0`); there is no maintenance branch,
+   so after it `v1` gets no more fixes.
 
 ## Reapplying the rulesets
 
