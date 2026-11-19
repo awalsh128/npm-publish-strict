@@ -34,7 +34,7 @@
     "semantic-release": "^25.0.9"
   },
   "devDependencies": {
-    "@awalsh128/winston-github-actions": "^1.0.0",
+    "@awalsh128/winston-github-actions": "^2.0.0",
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@octokit/rest": "^22.0.1",
