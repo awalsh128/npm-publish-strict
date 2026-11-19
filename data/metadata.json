@@ -5,6 +5,5 @@
   "tagFormat": "v${version}",
   "releaseBranch": "main",
   "candidateBranch": "staging",
-  "docsScript": "docs:api",
-  "docsDir": "docs/api"
+  "docsScript": "docs:api"
 }
