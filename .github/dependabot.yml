@@ -35,3 +35,6 @@ updates:
       interval: weekly
     commit-message:
       prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: ["*"]

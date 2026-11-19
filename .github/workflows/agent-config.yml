@@ -4,6 +4,17 @@ name: Agent Config
 # Agent Skills spec. Fix a failure locally with:
 #   npx -y rulesync@<RULESYNC_VERSION> generate
 on:
+  push:
+    branches: [main]
+    paths:
+      - .rulesync/**
+      - rulesync.jsonc
+      - .agents/**
+      - .claude/**
+      - .codex/**
+      - .github/agents/**
+      - .github/skills
+      - .github/workflows/agent-config.yml
   pull_request:
     paths:
       - .rulesync/**
@@ -18,6 +29,11 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR supersedes its running checks; other runs are never cancelled.
+concurrency:
+  group: agent-config-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # Not covered by Dependabot; bump by hand, ideally to a release at least two weeks old.
   RULESYNC_VERSION: 43.4.1
@@ -26,6 +42,7 @@ env:
 jobs:
   subagents:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,6 +57,7 @@ jobs:
 
   skills:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
