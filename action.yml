@@ -20,6 +20,12 @@ inputs:
       ignored. Leave empty to enforce the whole history.
     required: false
     default: ""
+  dry-run:
+    description: >-
+      'true' runs a release without tagging or publishing anything: the checks run, and semantic-release logs
+      the version and release notes it would produce. Has no effect in 'check' mode.
+    required: false
+    default: "false"
   github-token:
     description: "Token for the GitHub API (releases, issue comments) and for pushing the release tag."
     required: false

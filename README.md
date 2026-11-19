@@ -95,11 +95,12 @@ jobs:
 Configure the package's trusted publisher on npmjs.com for this workflow file (or run
 `npm trust github <package> --file release.yml --repo <owner>/<repo>`).
 
-| Input             | Default        | Purpose                                                  |
-| ----------------- | -------------- | -------------------------------------------------------- |
-| `mode`            | `release`      | `check` only verifies preconditions, from any branch     |
-| `baseline-commit` |                | Enforce and version only commits after this SHA          |
-| `github-token`    | `github.token` | Token for the GitHub API and for pushing the release tag |
+| Input             | Default        | Purpose                                                                                               |
+| ----------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| `mode`            | `release`      | `check` only verifies preconditions, from any branch                                                  |
+| `dry-run`         | `false`        | `true` releases nothing: the checks run and semantic-release logs the version and notes it would make |
+| `baseline-commit` |                | Enforce and version only commits after this SHA                                                       |
+| `github-token`    | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
 
 The rest is convention, not configuration: the package is at the repository root, tags are `v${version}`,
 `main` releases and `staging` cuts candidates, and `npm run docs:api` writes the docs to `docs/api`. If a tag

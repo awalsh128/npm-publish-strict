@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { actionRoot, readInputs, releaseEnv, RUNTIME_INSTALL_FLAGS } from "../src/release.js";
+import {
+  actionRoot,
+  readInputs,
+  releaseEnv,
+  RUNTIME_INSTALL_FLAGS,
+  semanticReleaseArgs,
+} from "../src/release.js";
 
 /** The INPUT_* variables the runner sets from action.yml's defaults. */
-const DEFAULT_INPUTS = { INPUT_MODE: "release", "INPUT_BASELINE-COMMIT": "", "INPUT_GITHUB-TOKEN": "tok" };
+const DEFAULT_INPUTS = {
+  INPUT_MODE: "release",
+  "INPUT_BASELINE-COMMIT": "",
+  "INPUT_DRY-RUN": "false",
+  "INPUT_GITHUB-TOKEN": "tok",
+};
 
 describe("releaseEnv", () => {
   const inputs = readInputs(DEFAULT_INPUTS);
@@ -41,7 +52,12 @@ describe("actionRoot", () => {
 
 describe("readInputs", () => {
   it("default inputs return release mode, no baseline and the token", () => {
-    expect(readInputs(DEFAULT_INPUTS)).toEqual({ mode: "release", baselineCommit: "", githubToken: "tok" });
+    expect(readInputs(DEFAULT_INPUTS)).toEqual({
+      mode: "release",
+      baselineCommit: "",
+      dryRun: false,
+      githubToken: "tok",
+    });
   });
 
   it("baseline and check mode are trimmed and read", () => {
@@ -65,5 +81,31 @@ describe("RUNTIME_INSTALL_FLAGS", () => {
     expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain(
       `npm ci ${RUNTIME_INSTALL_FLAGS.join(" ")}`
     );
+  });
+});
+
+describe("readInputs dry-run", () => {
+  it("true is read as a dry run", () => {
+    expect(readInputs({ ...DEFAULT_INPUTS, "INPUT_DRY-RUN": "true" }).dryRun).toBe(true);
+  });
+
+  it.each(["", "yes", "TRUE"])("'%s' throws", (value) => {
+    expect(() => readInputs({ ...DEFAULT_INPUTS, "INPUT_DRY-RUN": value })).toThrow(
+      "must be 'true' or 'false'"
+    );
+  });
+});
+
+describe("semanticReleaseArgs", () => {
+  it("dry run adds --dry-run to the config argument", () => {
+    const args = semanticReleaseArgs(readInputs({ ...DEFAULT_INPUTS, "INPUT_DRY-RUN": "true" }), "/action");
+    expect(args).toEqual(["--extends", "/action/release.config.mjs", "--dry-run"]);
+  });
+
+  it("real release passes only the config", () => {
+    expect(semanticReleaseArgs(readInputs(DEFAULT_INPUTS), "/action")).toEqual([
+      "--extends",
+      "/action/release.config.mjs",
+    ]);
   });
 });
