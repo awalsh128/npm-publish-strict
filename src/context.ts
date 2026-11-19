@@ -28,7 +28,11 @@ async function exchangeNpmToken(env: Context["env"], name: string): Promise<Exch
   try {
     value = await getIDToken(`npm:${new URL(NPM_REGISTRY).hostname}`);
   } catch (error) {
-    return { ok: false, status: 0, message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}` };
+    return {
+      ok: false,
+      status: 0,
+      message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
   let res: Response;
   try {
@@ -38,7 +42,11 @@ async function exchangeNpmToken(env: Context["env"], name: string): Promise<Exch
       signal: timeout(),
     });
   } catch (error) {
-    return { ok: false, status: 0, message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}` };
+    return {
+      ok: false,
+      status: 0,
+      message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
   const body = (await res.json().catch(() => ({}))) as { token?: string; message?: string };
   // The exchanged token is discarded on purpose: this only proves the exchange works.
@@ -46,7 +54,11 @@ async function exchangeNpmToken(env: Context["env"], name: string): Promise<Exch
 }
 
 /** Builds the context for the real environment from the action's inputs. */
-export function buildContext(inputs: Inputs, env: Context["env"] = process.env, cwd = process.cwd()): Context {
+export function buildContext(
+  inputs: Inputs,
+  env: Context["env"] = process.env,
+  cwd = process.cwd()
+): Context {
   /** stdout of a git command in the repository, or null when it fails. */
   const git = (args: string[]): string | null => {
     try {
@@ -83,7 +95,12 @@ export function buildContext(inputs: Inputs, env: Context["env"] = process.env, 
     commitExists: (ref) => git(["cat-file", "-e", `${ref}^{commit}`]) !== null,
     isAncestor: (ref) => git(["merge-base", "--is-ancestor", ref, "HEAD"]) !== null,
     commits(baseline) {
-      const out = git(["log", "--no-merges", "--format=%H%x09%s", ...(baseline ? [`${baseline}..HEAD`] : ["HEAD"])]);
+      const out = git([
+        "log",
+        "--no-merges",
+        "--format=%H%x09%s",
+        ...(baseline ? [`${baseline}..HEAD`] : ["HEAD"]),
+      ]);
       return (out ?? "")
         .split("\n")
         .filter(Boolean)

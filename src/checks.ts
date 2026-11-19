@@ -86,7 +86,7 @@ export const checks: readonly Check[] = [
     title: "package.json and package-lock.json exist",
     run: (ctx) => {
       const missing = ["package.json", "package-lock.json"].filter(
-        (file) => !existsSync(join(ctx.cwd, file)),
+        (file) => !existsSync(join(ctx.cwd, file))
       );
       return missing.length === 0
         ? null
@@ -213,7 +213,7 @@ export const checks: readonly Check[] = [
     title: "GitHub Actions are pinned to commit SHAs",
     run: (ctx) => {
       const unpinned = listWorkflowFiles(join(ctx.cwd, ".github")).flatMap((f) =>
-        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.cwd.length + 1)),
+        findUnpinnedActions(readFileSync(f, "utf8"), f.slice(ctx.cwd.length + 1))
       );
       return unpinned.length === 0
         ? null

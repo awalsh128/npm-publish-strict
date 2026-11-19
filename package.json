@@ -19,7 +19,10 @@
     "test": "npm run build && vitest run",
     "fixture": "node test/make-fixture.ts",
     "check:dist": "npm run build && git diff --exit-code -- dist",
-    "docs:api": "scripts/ops/typedoc/node_modules/.bin/typedoc --entryPointStrategy expand --out docs/api src"
+    "docs:api": "scripts/ops/typedoc/node_modules/.bin/typedoc --entryPointStrategy expand --out docs/api src",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@actions/core": "^2.0.3",
@@ -38,6 +41,9 @@
     "@types/node": "^26.6.6",
     "@types/semver": "^7.8.0",
     "esbuild": "^0.28.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.1",
+    "prettier": "3.10.1",
     "semver": "^7.8.6",
     "typescript": "~7.0.2",
     "vitest": "^5.1.0"

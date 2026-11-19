@@ -31,7 +31,9 @@ const context = {
 };
 
 const plugin = (name: string): Plugin["x"] => {
-  const found = (config.plugins as Plugin[]).find((p) => typeof p === "object" && !Array.isArray(p) && name in p);
+  const found = (config.plugins as Plugin[]).find(
+    (p) => typeof p === "object" && !Array.isArray(p) && name in p
+  );
   if (!found) throw new Error(`release.config.mjs has no ${name} plugin`);
   return found[name]!;
 };
@@ -85,8 +87,20 @@ describe("release.config.mjs success step", () => {
   const releaseContext = (cwd: string) => ({
     ...context,
     cwd,
-    nextRelease: { ...context.nextRelease, channel: "rc", version: "1.1.0-rc.1", gitTag: "v1.1.0-rc.1", notes: "## Notes\n- a" },
-    releases: [{ pluginName: "@semantic-release/github", name: "GitHub release", url: "https://github.com/o/r/releases/tag/x" }],
+    nextRelease: {
+      ...context.nextRelease,
+      channel: "rc",
+      version: "1.1.0-rc.1",
+      gitTag: "v1.1.0-rc.1",
+      notes: "## Notes\n- a",
+    },
+    releases: [
+      {
+        pluginName: "@semantic-release/github",
+        name: "GitHub release",
+        url: "https://github.com/o/r/releases/tag/x",
+      },
+    ],
   });
 
   async function outputsOf(releaseCtx: object): Promise<string> {

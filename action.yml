@@ -1,8 +1,7 @@
 name: "NPM Publish Strict"
 description: >-
-  Opinionated release pipeline: semantic-release (Conventional Commits), typedoc API docs, and npm
-  publishing via trusted publishing (OIDC). Fails fast, with fix steps, when the repository breaks
-  the conventions.
+  Opinionated release pipeline: semantic-release (Conventional Commits), typedoc API docs, and npm publishing
+  via trusted publishing (OIDC). Fails fast, with fix steps, when the repository breaks the conventions.
 author: Andrew Walsh
 branding:
   icon: package
@@ -11,14 +10,14 @@ branding:
 inputs:
   mode:
     description: >-
-      'release' checks preconditions, then releases. 'check' only checks preconditions (including
-      the npm trusted publisher), so you can confirm a fix without releasing anything.
+      'release' checks preconditions, then releases. 'check' only checks preconditions (including the npm
+      trusted publisher), so you can confirm a fix without releasing anything.
     required: false
     default: "release"
   baseline-commit:
     description: >-
-      Commit (SHA) from which Conventional Commits are enforced and releases are analyzed. Earlier
-      history is ignored. Leave empty to enforce the whole history.
+      Commit (SHA) from which Conventional Commits are enforced and releases are analyzed. Earlier history is
+      ignored. Leave empty to enforce the whole history.
     required: false
     default: ""
   github-token:
@@ -38,15 +37,19 @@ outputs:
   package-name:
     description: "Name of the released package from its package.json; empty when nothing was released."
   channel:
-    description: "Release channel semantic-release assigns: the candidate branch's name (such as 'staging') for a candidate, empty for an official release."
+    description:
+      "Release channel semantic-release assigns: the candidate branch's name (such as 'staging') for a
+      candidate, empty for an official release."
   prerelease:
-    description: "'true' for a release candidate, 'false' for an official release; empty when nothing was released."
+    description:
+      "'true' for a release candidate, 'false' for an official release; empty when nothing was released."
   release-type:
     description: "Version bump semantic-release chose (major, minor, patch); empty when nothing was released."
   git-head:
     description: "Commit SHA the release was cut from; empty when nothing was released."
   published:
-    description: "'true' when the package was published to npm; 'false' for candidates; empty when nothing was released."
+    description:
+      "'true' when the package was published to npm; 'false' for candidates; empty when nothing was released."
   npm-url:
     description: "URL of the published package version on npm; empty unless published."
   release-url:

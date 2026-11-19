@@ -15,5 +15,7 @@ await build({
   format: "esm",
   allowOverwrite: true,
   // Some bundled CommonJS code calls require().
-  banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },
+  banner: {
+    js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+  },
 });

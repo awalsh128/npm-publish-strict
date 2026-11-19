@@ -6,7 +6,7 @@ import semver from "semver";
 export class Version {
   private constructor(
     /** The version text, exactly as parsed. */
-    readonly value: string,
+    readonly value: string
   ) {}
 
   /** The version in `text`, or null unless `text` is exactly a valid version (no `v`, no whitespace). */
@@ -14,11 +14,7 @@ export class Version {
     const parsed = semver.parse(text);
     // semver.parse accepts a leading `v` and whitespace and its `version` drops build metadata, so rebuild the exact text.
     const exact =
-      parsed &&
-      [
-        parsed.version,
-        ...(parsed.build.length > 0 ? [parsed.build.join(".")] : []),
-      ].join("+");
+      parsed && [parsed.version, ...(parsed.build.length > 0 ? [parsed.build.join(".")] : [])].join("+");
     return exact === text ? new Version(text) : null;
   }
 
@@ -34,11 +30,7 @@ export class Version {
 
   /** `major.minor.patch` without prerelease or build metadata, such as `2.0.0` for `2.0.0-rc.1`. */
   get core(): string {
-    return [
-      semver.major(this.value),
-      semver.minor(this.value),
-      semver.patch(this.value),
-    ].join(".");
+    return [semver.major(this.value), semver.minor(this.value), semver.patch(this.value)].join(".");
   }
 
   /** True when this version is at least `min`. */

@@ -39,7 +39,7 @@ describe("repoSlug", () => {
 describe("workflowFile", () => {
   it("workflow ref returns the file name", () => {
     expect(workflowFile({ GITHUB_WORKFLOW_REF: "o/r/.github/workflows/publish.yaml@refs/heads/main" })).toBe(
-      "publish.yaml",
+      "publish.yaml"
     );
   });
 
@@ -65,9 +65,12 @@ describe("findUnpinnedActions", () => {
 });
 
 describe("CONVENTIONAL_HEADER", () => {
-  it.each(["feat: add x", "fix(parser): handle y", "feat!: break", "chore(deps): bump"])("%s matches", (s) => {
-    expect(CONVENTIONAL_HEADER.test(s)).toBe(true);
-  });
+  it.each(["feat: add x", "fix(parser): handle y", "feat!: break", "chore(deps): bump"])(
+    "%s matches",
+    (s) => {
+      expect(CONVENTIONAL_HEADER.test(s)).toBe(true);
+    }
+  );
 
   it.each(COMMIT_TYPES.map((t) => t.type))("type %s from commit-types.json matches", (type) => {
     expect(CONVENTIONAL_HEADER.test(`${type}: do a thing`)).toBe(true);
@@ -125,7 +128,9 @@ describe("checks", () => {
 
   it("unpinned workflow action fails actions-pinned and lists it", async () => {
     const cwd = makeRepo({ ".github/workflows/ci.yml": "steps:\n  - uses: actions/checkout@v4\n" });
-    const failure = (await runChecks(makeContext({ cwd }))).find((r) => r.check.id === "actions-pinned")?.failure;
+    const failure = (await runChecks(makeContext({ cwd }))).find(
+      (r) => r.check.id === "actions-pinned"
+    )?.failure;
     expect(failure?.details).toEqual([".github/workflows/ci.yml:2: actions/checkout@v4"]);
   });
 

@@ -9,10 +9,7 @@ export interface PromotionPlan {
 }
 
 function latest(versions: readonly Version[]): Version | undefined {
-  return versions.reduce<Version | undefined>(
-    (max, v) => (max && max.atLeast(v.value) ? max : v),
-    undefined,
-  );
+  return versions.reduce<Version | undefined>((max, v) => (max && max.atLeast(v.value) ? max : v), undefined);
 }
 
 /**
@@ -22,7 +19,7 @@ function latest(versions: readonly Version[]): Version | undefined {
  */
 export function planPromotion(
   stagingVersions: readonly Version[],
-  mainVersions: readonly Version[],
+  mainVersions: readonly Version[]
 ): PromotionPlan | null {
   const candidate = latest(stagingVersions.filter((v) => v.isPrerelease));
   const official = latest(mainVersions.filter((v) => !v.isPrerelease));

@@ -20,12 +20,16 @@ describe("releaseEnv", () => {
   });
 
   it("baseline and token reach semantic-release through the environment", () => {
-    const env = releaseEnv(readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": "abc123" }), { GITHUB_REF_NAME: "main" });
+    const env = releaseEnv(readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": "abc123" }), {
+      GITHUB_REF_NAME: "main",
+    });
     expect(env).toMatchObject({ BASELINE_COMMIT: "abc123", GITHUB_TOKEN: "tok" });
   });
 
   it("GIT_CREDENTIALS set on the step passes through", () => {
-    expect(releaseEnv(inputs, { GITHUB_REF_NAME: "main", GIT_CREDENTIALS: "u:p" }).GIT_CREDENTIALS).toBe("u:p");
+    expect(releaseEnv(inputs, { GITHUB_REF_NAME: "main", GIT_CREDENTIALS: "u:p" }).GIT_CREDENTIALS).toBe(
+      "u:p"
+    );
   });
 });
 
@@ -41,19 +45,25 @@ describe("readInputs", () => {
   });
 
   it("baseline and check mode are trimmed and read", () => {
-    expect(readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": " abc123 ", INPUT_MODE: "check" })).toMatchObject({
+    expect(
+      readInputs({ ...DEFAULT_INPUTS, "INPUT_BASELINE-COMMIT": " abc123 ", INPUT_MODE: "check" })
+    ).toMatchObject({
       baselineCommit: "abc123",
       mode: "check",
     });
   });
 
   it("unknown mode throws", () => {
-    expect(() => readInputs({ ...DEFAULT_INPUTS, INPUT_MODE: "bogus" })).toThrow("must be 'release' or 'check'");
+    expect(() => readInputs({ ...DEFAULT_INPUTS, INPUT_MODE: "bogus" })).toThrow(
+      "must be 'release' or 'check'"
+    );
   });
 });
 
 describe("RUNTIME_INSTALL_FLAGS", () => {
   it("ci.yml checks the config loads from an install with the same flags", () => {
-    expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain(`npm ci ${RUNTIME_INSTALL_FLAGS.join(" ")}`);
+    expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain(
+      `npm ci ${RUNTIME_INSTALL_FLAGS.join(" ")}`
+    );
   });
 });

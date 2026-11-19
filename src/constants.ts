@@ -46,5 +46,5 @@ export const COMMIT_TYPES: readonly CommitType[] = readJson<CommitType[]>("commi
 
 /** Header of a Conventional Commit: `type(scope)!: description`. */
 export const CONVENTIONAL_HEADER = new RegExp(
-  `^(${COMMIT_TYPES.map((t) => t.type).join("|")})(\\([^)\\r\\n]+\\))?!?: \\S`,
+  `^(${COMMIT_TYPES.map((t) => t.type).join("|")})(\\([^)\\r\\n]+\\))?!?: \\S`
 );

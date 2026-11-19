@@ -40,7 +40,7 @@ function packageJson(repository: string): string {
       scripts: { "docs:api": "mkdir -p docs/api && echo ok > docs/api/index.html" },
     },
     null,
-    2,
+    2
   );
 }
 
