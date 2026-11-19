@@ -20,6 +20,13 @@ inputs:
       ignored. Leave empty to enforce the whole history.
     required: false
     default: ""
+  bump:
+    description: >-
+      The smallest version bump to release: 'auto' (from the commits only), 'patch', 'minor' or 'major'.
+      Commits can still ask for a bigger one, and a release happens even when no commit calls for one. On the
+      candidate branch it sets the candidate's version (a forced 'major' from 1.4.0 gives 2.0.0-rc.1).
+    required: false
+    default: "auto"
   dry-run:
     description: >-
       'true' runs a release without tagging or publishing anything: the checks run, and semantic-release logs

@@ -12,6 +12,7 @@ import {
 const DEFAULT_INPUTS = {
   INPUT_MODE: "release",
   "INPUT_BASELINE-COMMIT": "",
+  INPUT_BUMP: "auto",
   "INPUT_DRY-RUN": "false",
   "INPUT_GITHUB-TOKEN": "tok",
 };
@@ -55,6 +56,7 @@ describe("readInputs", () => {
     expect(readInputs(DEFAULT_INPUTS)).toEqual({
       mode: "release",
       baselineCommit: "",
+      bump: "auto",
       dryRun: false,
       githubToken: "tok",
     });
@@ -107,5 +109,26 @@ describe("semanticReleaseArgs", () => {
       "--extends",
       "/action/release.config.mjs",
     ]);
+  });
+});
+
+describe("readInputs bump", () => {
+  it.each(["auto", "patch", "minor", "major"])("'%s' is read as is", (value) => {
+    expect(readInputs({ ...DEFAULT_INPUTS, INPUT_BUMP: value }).bump).toBe(value);
+  });
+
+  it.each(["", "Major", "1.2.0"])("'%s' throws", (value) => {
+    expect(() => readInputs({ ...DEFAULT_INPUTS, INPUT_BUMP: value })).toThrow(
+      "must be one of auto, patch, minor, major"
+    );
+  });
+});
+
+describe("releaseEnv bump", () => {
+  it("forced bump reaches release.config.mjs through RELEASE_BUMP", () => {
+    const env = releaseEnv(readInputs({ ...DEFAULT_INPUTS, INPUT_BUMP: "major" }), {
+      GITHUB_REF_NAME: "main",
+    });
+    expect(env.RELEASE_BUMP).toBe("major");
   });
 });

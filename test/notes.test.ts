@@ -125,3 +125,24 @@ describe("release.config.mjs success step", () => {
     });
   });
 });
+
+describe("release.config.mjs bump", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const analyze = async (bump: string, subject: string) => {
+    const loaded = await loadConfig({ RELEASE_BUMP: bump });
+    const found = (loaded.plugins as Plugin[]).find((p) => typeof p === "object" && "analyzeCommits" in p)!;
+    return found.analyzeCommits!({}, { ...context, commits: [commit("a".repeat(40), subject)] });
+  };
+
+  it.each([
+    ["minor", "fix: repair a thing", "minor"],
+    ["major", "feat: add a thing", "major"],
+    ["patch", "feat: add a thing", "minor"],
+    ["patch", "docs: explain a thing", "patch"],
+    ["auto", "docs: explain a thing", null],
+    ["auto", "fix: repair a thing", "patch"],
+  ])("analyzeCommits with bump %s and '%s' returns %s", async (bump, subject, expected) => {
+    expect(await analyze(bump, subject)).toBe(expected);
+  });
+});
