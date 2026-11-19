@@ -25,7 +25,9 @@ describe("failureMarkdown", () => {
   });
 
   it("numbers manual steps and renders indented ones as code under the previous step", () => {
-    expect(md).toContain("1. Go to Settings.\n   ```yaml\n   with:\n     fetch-depth: 0\n   ```\n2. Then save.");
+    expect(md).toContain(
+      "1. Go to Settings.\n   ```yaml\n   with:\n     fetch-depth: 0\n   ```\n2. Then save."
+    );
   });
 });
 
@@ -48,7 +50,11 @@ describe("report", () => {
     const errors: string[] = [];
     return {
       errors,
-      log: { info: () => undefined, error: (m: string) => errors.push(m), group: () => ({ dispose: () => undefined }) },
+      log: {
+        info: () => undefined,
+        error: (m: string) => errors.push(m),
+        group: () => ({ dispose: () => undefined }),
+      },
     };
   };
 

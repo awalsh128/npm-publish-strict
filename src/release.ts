@@ -74,6 +74,6 @@ export function release(inputs: Inputs, env: Env, actionPath: string, cwd: strin
     {
       cwd,
       env: releaseEnv(inputs, env),
-    },
+    }
   );
 }

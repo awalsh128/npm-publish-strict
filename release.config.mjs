@@ -10,14 +10,18 @@ import { Version } from "./dist/semver.js";
 
 // The conventions (branches, tag format, docs script and directory) are shared with the action's checks.
 const { tagFormat, releaseBranch, candidateBranch, docsScript, docsDir } = JSON.parse(
-  readFileSync(new URL("data/metadata.json", import.meta.url), "utf8"),
+  readFileSync(new URL("data/metadata.json", import.meta.url), "utf8")
 );
 const baseline = process.env.BASELINE_COMMIT?.trim();
 
 // With a baseline, commits it already contains are invisible to versioning and release notes, so
 // history from before Conventional Commits were adopted can't produce a wrong bump.
 const afterBaseline = baseline
-  ? new Set(execFileSync("git", ["rev-list", `${baseline}..HEAD`], { encoding: "utf8" }).split("\n").filter(Boolean))
+  ? new Set(
+      execFileSync("git", ["rev-list", `${baseline}..HEAD`], { encoding: "utf8" })
+        .split("\n")
+        .filter(Boolean)
+    )
   : null;
 const visible = (context) => ({
   ...context,
@@ -27,7 +31,10 @@ const visible = (context) => ({
 // commit check reads too, so the two can't disagree about what a valid prefix is.
 const commitTypes = JSON.parse(readFileSync(new URL("data/commit-types.json", import.meta.url), "utf8"));
 const releaseRules = commitTypes.filter((t) => t.release).map(({ type, release }) => ({ type, release }));
-const preset = { preset: "conventionalcommits", presetConfig: { types: commitTypes.map(({ release, ...type }) => type) } };
+const preset = {
+  preset: "conventionalcommits",
+  presetConfig: { types: commitTypes.map(({ release, ...type }) => type) },
+};
 
 // What a release surfaces to the workflow, as if the package had been released by its own action.
 // core.setOutput writes the GITHUB_OUTPUT file protocol, including multi-line values like the notes.
@@ -36,7 +43,8 @@ const writeOutputs = (outputs) => {
 };
 const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
   const name = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8")).name;
-  const urlOf = (pattern) => releases.find((r) => pattern.test(`${r.pluginName ?? ""} ${r.name ?? ""}`))?.url ?? "";
+  const urlOf = (pattern) =>
+    releases.find((r) => pattern.test(`${r.pluginName ?? ""} ${r.name ?? ""}`))?.url ?? "";
   return {
     released: "true",
     version: nextRelease.version,
@@ -56,12 +64,12 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
 
 export default {
   tagFormat,
-  branches: [
-    { name: candidateBranch, prerelease: "rc" },
-    releaseBranch,
-  ],
+  branches: [{ name: candidateBranch, prerelease: "rc" }, releaseBranch],
   plugins: [
-    { analyzeCommits: (config, context) => analyzeCommits({ ...preset, releaseRules, ...config }, visible(context)) },
+    {
+      analyzeCommits: (config, context) =>
+        analyzeCommits({ ...preset, releaseRules, ...config }, visible(context)),
+    },
     { generateNotes: (config, context) => generateNotes({ ...preset, ...config }, visible(context)) },
     // Trusted publishing (OIDC): no npm token. Candidates and dry runs skip the publish.
     ["@semantic-release/npm", { npmPublish: process.env.NPM_PUBLISH === "true" }],
@@ -69,7 +77,10 @@ export default {
       // Runs after the npm plugin so the docs carry the released version; a docs failure stops the
       // release before it is tagged.
       prepare: (_config, { cwd, nextRelease }) => {
-        execFileSync("npm", ["run", "-s", docsScript, "--", "--gitRevision", nextRelease.gitTag], { cwd, stdio: "inherit" });
+        execFileSync("npm", ["run", "-s", docsScript, "--", "--gitRevision", nextRelease.gitTag], {
+          cwd,
+          stdio: "inherit",
+        });
       },
     },
     "@semantic-release/github",

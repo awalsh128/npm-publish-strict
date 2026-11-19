@@ -10,5 +10,5 @@
   "targets": ["claudecode", "codexcli", "copilot", "antigravity-cli"],
   "features": ["subagents"],
   // Remove generated subagents whose source was deleted.
-  "delete": true
+  "delete": true,
 }

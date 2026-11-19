@@ -84,7 +84,9 @@ describe("dist/main.js in check mode", () => {
   it("package.json naming another repository fails package-repository with the fix command", () => {
     const run = runAction("wrong-repository");
     expect(run.failedChecks).toBe("package-repository");
-    expect(run.summary).toContain("npm pkg set repository.type=git repository.url=git+https://github.com/o/r.git");
+    expect(run.summary).toContain(
+      "npm pkg set repository.type=git repository.url=git+https://github.com/o/r.git"
+    );
   });
 
   it("action pinned by tag fails actions-pinned and lists the line", () => {

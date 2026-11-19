@@ -9,33 +9,65 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - Never claim success unless verified.
 - Confirm before force-push, history rewrite, or release publishing.
 - Never expose secrets in model-visible channels.
-- MUST keep GitHub Actions pinned to full commit SHAs, in this repo and in what the `actions-pinned` check enforces.
-- Use Conventional Commits.
-- Never edit generated role files (`.claude/agents`, `.codex/agents`, `.github/agents`, `.agents/agents`); edit `.rulesync/subagents` and run `npx -y rulesync@43.4.1 generate`.
+- MUST keep GitHub Actions pinned to full commit SHAs, in this repo and in what the `actions-pinned` check
+  enforces.
+- Use Conventional Commits. Format with Prettier (`npm run format`); a husky pre-commit hook formats staged
+  files and CI runs `npm run format:check`.
+- Never edit generated role files (`.claude/agents`, `.codex/agents`, `.github/agents`, `.agents/agents`);
+  edit `.rulesync/subagents` and run `npx -y rulesync@43.4.1 generate`.
 
 ## Repo Layout
 
 - `action.yml`: Node 24 action; `main` is `dist/main.js`.
-- `src/`: TypeScript source. `checks.ts` holds the preconditions; `report.ts` renders fix steps; `release.ts` runs semantic-release.
-- `dist/`: `main.js` and `semver.js`, bundled by esbuild (tsc only typechecks), committed because the action runs from it. MUST run `npm run build` and commit `dist/` with every `src/` change; CI fails when it is stale.
-- `test/`: vitest. `fixtures.ts` builds throwaway consumer repos; `e2e.test.ts` runs `dist/main.js` on them; the `action-e2e` CI job moves each fixture into the workspace and runs the action from `./.action-under-test` on it. Add a scenario there for every new precondition. Name tests `<method> <conditions> <expected>`; no control flow in test bodies.
-- `scripts/`: TypeScript run directly by Node in this repo's workflows (`promote-guard.ts` stops a major promotion until it is confirmed). Logic lives in pure modules tested under `test/`; they load `Version` from `dist/semver.js` because the workflows don't install.
-- `release.config.mjs`: semantic-release config applied to consumer repos and to this repo's own releases (stays JavaScript; semantic-release loads it). Release notes are generated at release into the GitHub Release only; never commit them.
-- `scripts/ops/typedoc/`: typedoc with its own lockfile and TypeScript 6 (typedoc doesn't support TypeScript 7 yet), so this repo has the `docs:api` script `release.config.mjs` runs.
-- Keep runtime `dependencies` at zero in `src/`; Node built-ins plus `@octokit/rest` for GitHub API calls and `@awalsh128/winston-github-actions` for logging (`src/logger.ts`), `semver` for version comparison, and `@actions/core` for outputs and the OIDC token. `@actions/core` is a runtime dependency because `release.config.mjs` imports it after the action installs with `--omit=dev`; every package `release.config.mjs` imports must be one. Octokit, the logger and `semver` are devDependencies that `esbuild.config.mjs` bundles into `dist/main.js` and `dist/semver.js`, so the action runs before any install. semantic-release and its plugins are installed from this repo's lockfile at run time.
-- Every precondition MUST return a `Failure` with `problem`, `automated` commands, `manual` steps with navigation, and `links`. Never fail with a bare message.
-- Conventions enforced on consumers: the package at the repository root, tags `v${version}`, placeholder `version` `0.0.0-semantically-released`, no `CHANGELOG.md`, no release commits, `main` official / `staging` rc, npm trusted publishing (OIDC), typedoc via a `docs:api` script, Conventional Commits (from `baseline-commit` when set).
-- `data/metadata.json` holds the fixed conventions (branches, tag format, docs script and directory) for both the checks and `release.config.mjs`; action inputs read their defaults from `action.yml` only.
-- `data/commit-types.json` is the only list of commit prefixes: it feeds the `commits` check, semantic-release's `releaseRules` and the release notes sections. Change it there, never in the regex or the config.
+- `src/`: TypeScript source. `checks.ts` holds the preconditions; `report.ts` renders fix steps; `release.ts`
+  runs semantic-release.
+- `dist/`: `main.js` and `semver.js`, bundled by esbuild (tsc only typechecks), committed because the action
+  runs from it. MUST run `npm run build` and commit `dist/` with every `src/` change; CI fails when it is
+  stale.
+- `test/`: vitest. `fixtures.ts` builds throwaway consumer repos; `e2e.test.ts` runs `dist/main.js` on them;
+  the `action-e2e` CI job moves each fixture into the workspace and runs the action from
+  `./.action-under-test` on it. Add a scenario there for every new precondition. Name tests
+  `<method> <conditions> <expected>`; no control flow in test bodies.
+- `scripts/`: TypeScript run directly by Node in this repo's workflows (`promote-guard.ts` stops a major
+  promotion until it is confirmed). Logic lives in pure modules tested under `test/`; they load `Version` from
+  `dist/semver.js` because the workflows don't install.
+- `release.config.mjs`: semantic-release config applied to consumer repos and to this repo's own releases
+  (stays JavaScript; semantic-release loads it). Release notes are generated at release into the GitHub
+  Release only; never commit them.
+- `scripts/ops/typedoc/`: typedoc with its own lockfile and TypeScript 6 (typedoc doesn't support TypeScript 7
+  yet), so this repo has the `docs:api` script `release.config.mjs` runs.
+- Keep runtime `dependencies` at zero in `src/`; Node built-ins plus `@octokit/rest` for GitHub API calls and
+  `@awalsh128/winston-github-actions` for logging (`src/logger.ts`), `semver` for version comparison, and
+  `@actions/core` for outputs and the OIDC token. `@actions/core` is a runtime dependency because
+  `release.config.mjs` imports it after the action installs with `--omit=dev`; every package
+  `release.config.mjs` imports must be one. Octokit, the logger and `semver` are devDependencies that
+  `esbuild.config.mjs` bundles into `dist/main.js` and `dist/semver.js`, so the action runs before any
+  install. semantic-release and its plugins are installed from this repo's lockfile at run time.
+- Every precondition MUST return a `Failure` with `problem`, `automated` commands, `manual` steps with
+  navigation, and `links`. Never fail with a bare message.
+- Conventions enforced on consumers: the package at the repository root, tags `v${version}`, placeholder
+  `version` `0.0.0-semantically-released`, no `CHANGELOG.md`, no release commits, `main` official / `staging`
+  rc, npm trusted publishing (OIDC), typedoc via a `docs:api` script, Conventional Commits (from
+  `baseline-commit` when set).
+- `data/metadata.json` holds the fixed conventions (branches, tag format, docs script and directory) for both
+  the checks and `release.config.mjs`; action inputs read their defaults from `action.yml` only.
+- `data/commit-types.json` is the only list of commit prefixes: it feeds the `commits` check,
+  semantic-release's `releaseRules` and the release notes sections. Change it there, never in the regex or the
+  config.
 - ASK FIRST before changing action inputs/outputs; consumers depend on them.
 
 ## Branches And Releases
 
 - `main` is the official release branch; `staging` is the release candidate branch.
-- MUST keep `main` an ancestor of `staging`: update `main` only by fast-forward through `promote.yml`, never by PR merge or a release commit.
-- Open PRs into `staging`. Direct pushes to `staging` and `main` are blocked by rulesets (`.github/rulesets/`).
-- MUST gate every release by CI: candidates release from `ci.yml` after all jobs pass; official releases come only from `promote.yml`.
-- Releases tag, create a GitHub Release, and attest the bundle; they never commit. They are off unless the repository variable `RELEASES_ENABLED` is `true`, which `release.yml` checks, so a merge to `staging` or a promote releases nothing until it is turned on. Setup: `docs/release-setup.md`.
+- MUST keep `main` an ancestor of `staging`: update `main` only by fast-forward through `promote.yml`, never
+  by PR merge or a release commit.
+- Open PRs into `staging`. Direct pushes to `staging` and `main` are blocked by rulesets
+  (`.github/rulesets/`).
+- MUST gate every release by CI: candidates release from `ci.yml` after all jobs pass; official releases come
+  only from `promote.yml`.
+- Releases tag, create a GitHub Release, and attest the bundle; they never commit. They are off unless the
+  repository variable `RELEASES_ENABLED` is `true`, which `release.yml` checks, so a merge to `staging` or a
+  promote releases nothing until it is turned on. Setup: `docs/release-setup.md`.
 
 ## TypeScript Style
 
@@ -48,20 +80,21 @@ Before writing or reviewing TypeScript, load only the skill in `.agents/skills/`
 - New exports, identifiers, comments, TSDoc: `typescript-naming`.
 - Tests under `test/`: `typescript-tests`.
 
-This file wins over the skills: keep `interface` for object types and name tests `<method> <conditions> <expected>`, not `should ... when ...`. Don't rewrite existing code to match a skill.
+This file wins over the skills: keep `interface` for object types and name tests
+`<method> <conditions> <expected>`, not `should ... when ...`. Don't rewrite existing code to match a skill.
 
 ## Subagents
 
-You are the only agent that edits files. Subagents only read and report. Use the `delegate` skill
-before starting one, and the `progress-notes` skill for work that spans sessions.
+You are the only agent that edits files. Subagents only read and report. Use the `delegate` skill before
+starting one, and the `progress-notes` skill for work that spans sessions.
 
 ## More context
 
-- `.out-of-scope/` lists ideas that were considered and rejected. Check it before proposing a
-  feature.
+- `.out-of-scope/` lists ideas that were considered and rejected. Check it before proposing a feature.
 
 ## Single Source For All AI Tools
 
-- Instructions: `AGENTS.md` only. `CLAUDE.md`, `.gemini/settings.json` and `.github/copilot-instructions.md` point to it; never add rules to them.
+- Instructions: `AGENTS.md` only. `CLAUDE.md`, `.gemini/settings.json` and `.github/copilot-instructions.md`
+  point to it; never add rules to them.
 - Skills: `.agents/skills/` only. `.claude/skills` and `.github/skills` are symlinks to it.
 - Roles: `.rulesync/subagents/` only. Every other role directory is generated output.

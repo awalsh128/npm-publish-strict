@@ -38062,10 +38062,7 @@ var Version = class _Version {
   /** The version in `text`, or null unless `text` is exactly a valid version (no `v`, no whitespace). */
   static parse(text) {
     const parsed = import_semver.default.parse(text);
-    const exact = parsed && [
-      parsed.version,
-      ...parsed.build.length > 0 ? [parsed.build.join(".")] : []
-    ].join("+");
+    const exact = parsed && [parsed.version, ...parsed.build.length > 0 ? [parsed.build.join(".")] : []].join("+");
     return exact === text ? new _Version(text) : null;
   }
   /** True for a prerelease such as `1.0.0-rc.1`; a hyphen in build metadata (`1.0.0+a-b`) does not count. */
@@ -38078,11 +38075,7 @@ var Version = class _Version {
   }
   /** `major.minor.patch` without prerelease or build metadata, such as `2.0.0` for `2.0.0-rc.1`. */
   get core() {
-    return [
-      import_semver.default.major(this.value),
-      import_semver.default.minor(this.value),
-      import_semver.default.patch(this.value)
-    ].join(".");
+    return [import_semver.default.major(this.value), import_semver.default.minor(this.value), import_semver.default.patch(this.value)].join(".");
   }
   /** True when this version is at least `min`. */
   atLeast(min) {
@@ -42538,7 +42531,11 @@ async function exchangeNpmToken(env, name) {
   try {
     value = await (0, import_core2.getIDToken)(`npm:${new URL(NPM_REGISTRY).hostname}`);
   } catch (error) {
-    return { ok: false, status: 0, message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}` };
+    return {
+      ok: false,
+      status: 0,
+      message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
   let res;
   try {
@@ -42548,7 +42545,11 @@ async function exchangeNpmToken(env, name) {
       signal: timeout()
     });
   } catch (error) {
-    return { ok: false, status: 0, message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}` };
+    return {
+      ok: false,
+      status: 0,
+      message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}`
+    };
   }
   const body = await res.json().catch(() => ({}));
   return { ok: res.ok && !!body.token, status: res.status, message: body.message ?? res.statusText };
@@ -42588,7 +42589,12 @@ function buildContext(inputs, env = process.env, cwd = process.cwd()) {
     commitExists: (ref) => git(["cat-file", "-e", `${ref}^{commit}`]) !== null,
     isAncestor: (ref) => git(["merge-base", "--is-ancestor", ref, "HEAD"]) !== null,
     commits(baseline) {
-      const out = git(["log", "--no-merges", "--format=%H%x09%s", ...baseline ? [`${baseline}..HEAD`] : ["HEAD"]]);
+      const out = git([
+        "log",
+        "--no-merges",
+        "--format=%H%x09%s",
+        ...baseline ? [`${baseline}..HEAD`] : ["HEAD"]
+      ]);
       return (out ?? "").split("\n").filter(Boolean).map((line) => {
         const [hash = "", ...rest] = line.split("	");
         return { hash, subject: rest.join("	") };
@@ -42673,7 +42679,12 @@ var createLogger2 = () => new import_winston_github_actions.ActionsLogger();
 // src/report.ts
 var import_core3 = __toESM(require_core(), 1);
 function failureMarkdown(check, failure) {
-  const out = [renderTemplate("failure-heading.md", { title: check.title, id: check.id }), "", failure.problem, ""];
+  const out = [
+    renderTemplate("failure-heading.md", { title: check.title, id: check.id }),
+    "",
+    failure.problem,
+    ""
+  ];
   if (failure.details?.length) out.push(...failure.details.map((d) => `- ${d}`), "");
   if (failure.automated.length) {
     out.push(renderTemplate("automated-intro.md"), "");
@@ -42683,12 +42694,14 @@ function failureMarkdown(check, failure) {
     out.push("**Manual:**", "");
     let n = 0;
     for (const step of failure.manual) {
-      if (step.startsWith("  ")) out.push("   ```yaml", ...step.split("\n").map((l) => `   ${l.slice(2)}`), "   ```");
+      if (step.startsWith("  "))
+        out.push("   ```yaml", ...step.split("\n").map((l) => `   ${l.slice(2)}`), "   ```");
       else out.push(`${++n}. ${step}`);
     }
     out.push("");
   }
-  if (failure.links.length) out.push("**Read more:**", "", ...failure.links.map((l) => `- [${l.text}](${l.url})`), "");
+  if (failure.links.length)
+    out.push("**Read more:**", "", ...failure.links.map((l) => `- [${l.text}](${l.url})`), "");
   return out.join("\n");
 }
 function verifyMarkdown(env) {
@@ -42698,9 +42711,19 @@ var failedOf = (results) => results.filter((r) => r.failure !== null);
 var sectionOf = (r) => failureMarkdown(r.check, r.failure);
 function summaryFrom(env, results, sections) {
   if (sections.length === 0) {
-    return [renderTemplate("pass-heading.md", { count: results.length }), "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
+    return [
+      renderTemplate("pass-heading.md", { count: results.length }),
+      "",
+      ...results.map((r) => `- ${r.check.title}`),
+      ""
+    ].join("\n");
   }
-  return [renderTemplate("fail-heading.md", { count: sections.length }), "", ...sections, verifyMarkdown(env)].join("\n");
+  return [
+    renderTemplate("fail-heading.md", { count: sections.length }),
+    "",
+    ...sections,
+    verifyMarkdown(env)
+  ].join("\n");
 }
 async function report(ctx, results, log = createLogger2()) {
   for (const r of results) log.info(`${r.failure ? "\u2718" : "\u2714"} ${r.check.title}`);
@@ -42712,7 +42735,8 @@ async function report(ctx, results, log = createLogger2()) {
     group.dispose();
     log.error(`${r.check.title} (${r.check.id}): ${r.failure.problem}`);
   });
-  if (process.env.GITHUB_STEP_SUMMARY) await import_core3.summary.addRaw(summaryFrom(ctx.env, results, sections), true).write();
+  if (process.env.GITHUB_STEP_SUMMARY)
+    await import_core3.summary.addRaw(summaryFrom(ctx.env, results, sections), true).write();
   return failed.length === 0;
 }
 
