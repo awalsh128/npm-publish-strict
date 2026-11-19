@@ -24365,14 +24365,48 @@ var require_benchmark = __commonJS({
       }
       /** Logs the lambda's message at its level, followed by the elapsed time. */
       dispose() {
-        if (this.logger.silent || !this.logger.isLevelEnabled(this.getLog().level)) {
+        if (this.logger.silent) {
           return;
         }
         const { level, message } = this.getLog();
+        if (!this.logger.isLevelEnabled(level)) {
+          return;
+        }
         this.logger.logLazy(level, () => `${message} (${this.getDeltaAsText()})`);
       }
     };
     exports.DisposableBenchmark = DisposableBenchmark;
+  }
+});
+
+// node_modules/@awalsh128/winston-host/dist/disposable.js
+var require_disposable = __commonJS({
+  "node_modules/@awalsh128/winston-host/dist/disposable.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/@awalsh128/winston-host/dist/location.js
+var require_location = __commonJS({
+  "node_modules/@awalsh128/winston-host/dist/location.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.rangeText = rangeText;
+    exports.getLocation = getLocation;
+    function rangeText(location) {
+      if (location?.line === void 0) {
+        return "";
+      }
+      if (location.endLine === void 0 || location.endLine === location.line) {
+        return `[${location.line}]`;
+      }
+      return `[${location.line}:${location.endLine}]`;
+    }
+    function getLocation(info) {
+      const location = info.location;
+      return location && typeof location.path === "string" ? location : void 0;
+    }
   }
 });
 
@@ -24419,64 +24453,27 @@ var require_format = __commonJS({
     })();
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.toLogText = toLogText;
-    exports.rangeText = rangeText;
-    exports.getLocation = getLocation;
     exports.defaultFormat = defaultFormat;
     exports.plainFormat = plainFormat;
+    exports.logAndGetError = logAndGetError;
     var util = __importStar(__require("node:util"));
+    var location_1 = require_location();
     function toLogText(value) {
       if (typeof value === "string") {
         return value;
       }
       return util.inspect(value, { depth: null, compact: false, colors: false, getters: true });
     }
-    function rangeText(location) {
-      if (location?.line === void 0) {
-        return "";
-      }
-      if (location.endLine === void 0 || location.endLine === location.line) {
-        return `[${location.line}]`;
-      }
-      return `[${location.line}:${location.endLine}]`;
-    }
-    function getLocation(info) {
-      const location = info.location;
-      return location && typeof location.path === "string" ? location : void 0;
-    }
     function defaultFormat(info) {
       if (info.error) {
         return toLogText(info);
       }
-      const location = getLocation(info);
-      const prefix = location ? `${location.path}${rangeText(location)}: ` : "";
+      const location = (0, location_1.getLocation)(info);
+      const prefix = location ? `${location.path}${(0, location_1.rangeText)(location)}: ` : "";
       return `${prefix}${toLogText(info.message)}`;
     }
     function plainFormat(info) {
       return info.error ? toLogText(info) : toLogText(info.message);
-    }
-  }
-});
-
-// node_modules/@awalsh128/winston-host/dist/helpers.js
-var require_helpers = __commonJS({
-  "node_modules/@awalsh128/winston-host/dist/helpers.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.setLogLevel = setLogLevel;
-    exports.logAndGetError = logAndGetError;
-    var format_1 = require_format();
-    function setLogLevel(logger, level) {
-      const previous = logger.silent ? "off" : logger.level;
-      if (level === "off") {
-        logger.silent = true;
-        return;
-      }
-      logger.silent = false;
-      logger.level = level;
-      logger.transports.forEach((t) => t.level = level);
-      if (previous !== level) {
-        logger.info(`Log level changed from '${previous}' to '${level}'`);
-      }
     }
     function logAndGetError(logger, error) {
       let err;
@@ -24485,129 +24482,11 @@ var require_helpers = __commonJS({
       } else if (typeof error === "string") {
         err = new Error(error);
       } else {
-        err = new Error((0, format_1.toLogText)(error));
+        err = new Error(toLogText(error));
       }
       logger.error(err.message, { error: err, stack: err.stack });
       return err;
     }
-  }
-});
-
-// node_modules/triple-beam/config/cli.js
-var require_cli = __commonJS({
-  "node_modules/triple-beam/config/cli.js"(exports) {
-    "use strict";
-    exports.levels = {
-      error: 0,
-      warn: 1,
-      help: 2,
-      data: 3,
-      info: 4,
-      debug: 5,
-      prompt: 6,
-      verbose: 7,
-      input: 8,
-      silly: 9
-    };
-    exports.colors = {
-      error: "red",
-      warn: "yellow",
-      help: "cyan",
-      data: "grey",
-      info: "green",
-      debug: "blue",
-      prompt: "grey",
-      verbose: "cyan",
-      input: "grey",
-      silly: "magenta"
-    };
-  }
-});
-
-// node_modules/triple-beam/config/npm.js
-var require_npm = __commonJS({
-  "node_modules/triple-beam/config/npm.js"(exports) {
-    "use strict";
-    exports.levels = {
-      error: 0,
-      warn: 1,
-      info: 2,
-      http: 3,
-      verbose: 4,
-      debug: 5,
-      silly: 6
-    };
-    exports.colors = {
-      error: "red",
-      warn: "yellow",
-      info: "green",
-      http: "green",
-      verbose: "cyan",
-      debug: "blue",
-      silly: "magenta"
-    };
-  }
-});
-
-// node_modules/triple-beam/config/syslog.js
-var require_syslog = __commonJS({
-  "node_modules/triple-beam/config/syslog.js"(exports) {
-    "use strict";
-    exports.levels = {
-      emerg: 0,
-      alert: 1,
-      crit: 2,
-      error: 3,
-      warning: 4,
-      notice: 5,
-      info: 6,
-      debug: 7
-    };
-    exports.colors = {
-      emerg: "red",
-      alert: "yellow",
-      crit: "red",
-      error: "red",
-      warning: "red",
-      notice: "yellow",
-      info: "green",
-      debug: "blue"
-    };
-  }
-});
-
-// node_modules/triple-beam/config/index.js
-var require_config = __commonJS({
-  "node_modules/triple-beam/config/index.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "cli", {
-      value: require_cli()
-    });
-    Object.defineProperty(exports, "npm", {
-      value: require_npm()
-    });
-    Object.defineProperty(exports, "syslog", {
-      value: require_syslog()
-    });
-  }
-});
-
-// node_modules/triple-beam/index.js
-var require_triple_beam = __commonJS({
-  "node_modules/triple-beam/index.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "LEVEL", {
-      value: /* @__PURE__ */ Symbol.for("level")
-    });
-    Object.defineProperty(exports, "MESSAGE", {
-      value: /* @__PURE__ */ Symbol.for("message")
-    });
-    Object.defineProperty(exports, "SPLAT", {
-      value: /* @__PURE__ */ Symbol.for("splat")
-    });
-    Object.defineProperty(exports, "configs", {
-      value: require_config()
-    });
   }
 });
 
@@ -25298,6 +25177,124 @@ var require_safe = __commonJS({
   "node_modules/logform/node_modules/@colors/colors/safe.js"(exports, module) {
     var colors = require_colors();
     module["exports"] = colors;
+  }
+});
+
+// node_modules/triple-beam/config/cli.js
+var require_cli = __commonJS({
+  "node_modules/triple-beam/config/cli.js"(exports) {
+    "use strict";
+    exports.levels = {
+      error: 0,
+      warn: 1,
+      help: 2,
+      data: 3,
+      info: 4,
+      debug: 5,
+      prompt: 6,
+      verbose: 7,
+      input: 8,
+      silly: 9
+    };
+    exports.colors = {
+      error: "red",
+      warn: "yellow",
+      help: "cyan",
+      data: "grey",
+      info: "green",
+      debug: "blue",
+      prompt: "grey",
+      verbose: "cyan",
+      input: "grey",
+      silly: "magenta"
+    };
+  }
+});
+
+// node_modules/triple-beam/config/npm.js
+var require_npm = __commonJS({
+  "node_modules/triple-beam/config/npm.js"(exports) {
+    "use strict";
+    exports.levels = {
+      error: 0,
+      warn: 1,
+      info: 2,
+      http: 3,
+      verbose: 4,
+      debug: 5,
+      silly: 6
+    };
+    exports.colors = {
+      error: "red",
+      warn: "yellow",
+      info: "green",
+      http: "green",
+      verbose: "cyan",
+      debug: "blue",
+      silly: "magenta"
+    };
+  }
+});
+
+// node_modules/triple-beam/config/syslog.js
+var require_syslog = __commonJS({
+  "node_modules/triple-beam/config/syslog.js"(exports) {
+    "use strict";
+    exports.levels = {
+      emerg: 0,
+      alert: 1,
+      crit: 2,
+      error: 3,
+      warning: 4,
+      notice: 5,
+      info: 6,
+      debug: 7
+    };
+    exports.colors = {
+      emerg: "red",
+      alert: "yellow",
+      crit: "red",
+      error: "red",
+      warning: "red",
+      notice: "yellow",
+      info: "green",
+      debug: "blue"
+    };
+  }
+});
+
+// node_modules/triple-beam/config/index.js
+var require_config = __commonJS({
+  "node_modules/triple-beam/config/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "cli", {
+      value: require_cli()
+    });
+    Object.defineProperty(exports, "npm", {
+      value: require_npm()
+    });
+    Object.defineProperty(exports, "syslog", {
+      value: require_syslog()
+    });
+  }
+});
+
+// node_modules/triple-beam/index.js
+var require_triple_beam = __commonJS({
+  "node_modules/triple-beam/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "LEVEL", {
+      value: /* @__PURE__ */ Symbol.for("level")
+    });
+    Object.defineProperty(exports, "MESSAGE", {
+      value: /* @__PURE__ */ Symbol.for("message")
+    });
+    Object.defineProperty(exports, "SPLAT", {
+      value: /* @__PURE__ */ Symbol.for("splat")
+    });
+    Object.defineProperty(exports, "configs", {
+      value: require_config()
+    });
   }
 });
 
@@ -37362,6 +37359,7 @@ var require_levels2 = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.LOG_LEVELS = void 0;
     exports.isLogLevel = isLogLevel;
+    exports.setLogLevel = setLogLevel;
     exports.LOG_LEVELS = {
       error: 0,
       warn: 1,
@@ -37371,6 +37369,19 @@ var require_levels2 = __commonJS({
     };
     function isLogLevel(level) {
       return Object.hasOwn(exports.LOG_LEVELS, level);
+    }
+    function setLogLevel(logger, level) {
+      const previous = logger.silent ? "off" : logger.level;
+      if (level === "off") {
+        logger.silent = true;
+        return;
+      }
+      logger.silent = false;
+      logger.level = level;
+      logger.transports.forEach((t) => t.level = level);
+      if (previous !== level) {
+        logger.info(`Log level changed from '${previous}' to '${level}'`);
+      }
     }
   }
 });
@@ -37423,7 +37434,7 @@ var require_lazy = __commonJS({
     exports.resetNativeLazy = resetNativeLazy;
     var winston = __importStar(require_winston());
     var levels_1 = require_levels2();
-    var nativeLevelMethods = null;
+    var nativeProbe;
     function findNativeLazy(create = winston.createLogger) {
       try {
         let seen;
@@ -37454,12 +37465,15 @@ var require_lazy = __commonJS({
         return void 0;
       }
     }
+    function getNativeLevelMethods() {
+      nativeProbe ??= { methods: findNativeLazy() };
+      return nativeProbe.methods;
+    }
     function usesNativeLazy() {
-      nativeLevelMethods = nativeLevelMethods === null ? findNativeLazy() ?? void 0 : nativeLevelMethods;
-      return nativeLevelMethods !== void 0;
+      return getNativeLevelMethods() !== void 0;
     }
     function resetNativeLazy() {
-      nativeLevelMethods = null;
+      nativeProbe = void 0;
     }
     function shimLazy(logger, level, args) {
       const [getMessage, ...meta] = args;
@@ -37472,8 +37486,7 @@ var require_lazy = __commonJS({
           if (this.silent || !this.isLevelEnabled(level)) {
             return this;
           }
-          usesNativeLazy();
-          const native = args.length === 1 ? nativeLevelMethods?.[level] : void 0;
+          const native = args.length === 1 ? getNativeLevelMethods()?.[level] : void 0;
           return native ? native.apply(this, args) : shimLazy(this, level, args);
         }
         if (args.length === 1) {
@@ -37564,39 +37577,12 @@ var require_host = __commonJS({
         return result;
       };
     })();
-    var __importDefault = exports && exports.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.HostLogger = exports.HostTransport = void 0;
-    var triple_beam_1 = require_triple_beam();
+    exports.HostLogger = void 0;
     var winston = __importStar(require_winston());
-    var winston_transport_1 = __importDefault(require_winston_transport());
     var format_1 = require_format();
-    var helpers_1 = require_helpers();
     var lazy_1 = require_lazy();
     var levels_1 = require_levels2();
-    var HostTransport = class extends winston_transport_1.default {
-      sink;
-      constructor(opts) {
-        super(opts);
-        this.sink = opts.sink;
-      }
-      log(info, next) {
-        setImmediate(() => this.emit("logged", info));
-        const message = String(info[triple_beam_1.MESSAGE] ?? info.message ?? "");
-        const level = String(info[triple_beam_1.LEVEL] ?? info.level ?? "info");
-        if ((0, levels_1.isLogLevel)(level)) {
-          this.sink.write(level, message, (0, format_1.getLocation)(info));
-        } else if (this.sink.writeUnknown) {
-          this.sink.writeUnknown(level, message);
-        } else {
-          this.sink.write("info", `[UNKNOWN/${level}] ${message}`);
-        }
-        next();
-      }
-    };
-    exports.HostTransport = HostTransport;
     var HostLogger = class extends lazy_1.LazyLogger {
       /** The formatter applied to the host's lines. */
       format_;
@@ -37610,23 +37596,16 @@ var require_host = __commonJS({
           level: winstonLevel,
           levels: { ...levels_1.LOG_LEVELS },
           silent: level === "off",
-          transports: [
-            new HostTransport({
-              sink: host.sink,
-              format: winston.format.printf(format),
-              level: winstonLevel
-            }),
-            ...options.transports ?? []
-          ]
+          transports: [host.createTransport(winston.format.printf(format)), ...options.transports ?? []]
         });
         this.transports.forEach((t) => t.level = winstonLevel);
         this.host = host;
         this.format_ = format;
-        this.levelSubscription = host.onLevelChange?.((newLevel) => (0, helpers_1.setLogLevel)(this, newLevel));
+        this.levelSubscription = host.onLevelChange?.((newLevel) => (0, levels_1.setLogLevel)(this, newLevel));
       }
       /** Sets the level of the logger and its transports; `"off"` silences it. */
       setLevel(level) {
-        (0, helpers_1.setLogLevel)(this, level);
+        (0, levels_1.setLogLevel)(this, level);
       }
       /**
        * Creates a child logger whose lines carry a location, which `defaultFormat` prefixes and hosts
@@ -37668,11 +37647,12 @@ var require_dist = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     __exportStar(require_benchmark(), exports);
+    __exportStar(require_disposable(), exports);
     __exportStar(require_format(), exports);
-    __exportStar(require_helpers(), exports);
     __exportStar(require_host(), exports);
     __exportStar(require_lazy(), exports);
     __exportStar(require_levels2(), exports);
+    __exportStar(require_location(), exports);
   }
 });
 
@@ -37684,13 +37664,57 @@ var require_core2 = __commonJS({
   }
 });
 
-// node_modules/@awalsh128/winston-github-actions/dist/sink.js
-var require_sink = __commonJS({
-  "node_modules/@awalsh128/winston-github-actions/dist/sink.js"(exports) {
+// node_modules/@awalsh128/winston-github-actions/dist/transport.js
+var require_transport = __commonJS({
+  "node_modules/@awalsh128/winston-github-actions/dist/transport.js"(exports) {
     "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    var __importDefault = exports && exports.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ActionsTransport = void 0;
     exports.toAnnotation = toAnnotation;
-    exports.actionsSink = actionsSink;
+    var winston_host_1 = require_dist();
+    var triple_beam_1 = require_triple_beam();
+    var winston = __importStar(require_winston());
+    var winston_transport_1 = __importDefault(require_winston_transport());
     function toAnnotation(location) {
       if (!location) {
         return void 0;
@@ -37707,21 +37731,43 @@ var require_sink = __commonJS({
       }
       return properties;
     }
-    function actionsSink(core) {
-      return {
-        write(level, message, location) {
-          switch (level) {
-            case "error":
-              return core.error(message, toAnnotation(location));
-            case "warn":
-              return core.warning(message, toAnnotation(location));
-            case "info":
-              return core.info(message);
-            default:
-              return core.debug(message);
-          }
+    function commandFor(level) {
+      switch (level) {
+        case "error":
+          return "error";
+        case "warn":
+        case "warning":
+          return "warning";
+        case "debug":
+        case "trace":
+        case "silly":
+          return "debug";
+        default:
+          return "info";
+      }
+    }
+    var ActionsTransport = class extends winston_transport_1.default {
+      core;
+      constructor(opts = {}) {
+        super({ ...opts, format: opts.format ?? winston.format.printf(winston_host_1.plainFormat) });
+        this.core = opts.core;
+      }
+      log(info, next) {
+        setImmediate(() => this.emit("logged", info));
+        const message = String(info[triple_beam_1.MESSAGE] ?? info.message ?? "");
+        const command = commandFor(String(info[triple_beam_1.LEVEL] ?? info.level ?? "info"));
+        const core = this.core ?? (this.core = loadCore());
+        if (command === "error" || command === "warning") {
+          core[command](message, toAnnotation((0, winston_host_1.getLocation)(info)));
+        } else {
+          core[command](message);
         }
-      };
+        next();
+      }
+    };
+    exports.ActionsTransport = ActionsTransport;
+    function loadCore() {
+      return require_core();
     }
   }
 });
@@ -37772,32 +37818,30 @@ var require_logger2 = __commonJS({
     exports.levelFromEnv = levelFromEnv;
     var winston_host_1 = require_dist();
     var actionsCore = __importStar(require_core());
-    var sink_1 = require_sink();
+    var transport_1 = require_transport();
     function levelFromEnv(core, env = process.env) {
       const stepDebug = env.ACTIONS_STEP_DEBUG;
       return core.isDebug() || env.RUNNER_DEBUG === "1" || stepDebug === "true" || stepDebug === "1" ? "trace" : "info";
     }
     var GroupBenchmark = class extends winston_host_1.Benchmark {
-      logger;
+      owner;
       title;
       level;
-      grouping;
       grouped;
       /** @internal */
-      constructor(logger, title, level, grouping) {
+      constructor(owner, title, level) {
         super();
-        this.logger = logger;
+        this.owner = owner;
         this.title = title;
         this.level = level;
-        this.grouping = grouping;
-        this.grouped = grouping.start(title);
+        this.grouped = owner.startGroup(title);
       }
       /** Ends the group and logs the title with the elapsed time. */
       dispose() {
         if (this.grouped) {
-          this.grouping.end();
+          this.owner.endGroup();
         }
-        this.logger.logLazy(this.level, () => `${this.title} (${this.getDeltaAsText()})`);
+        this.owner.logLazy(this.level, () => `${this.title} (${this.getDeltaAsText()})`);
       }
     };
     exports.GroupBenchmark = GroupBenchmark;
@@ -37807,7 +37851,7 @@ var require_logger2 = __commonJS({
       constructor(options = {}) {
         const core = options.core ?? actionsCore;
         const host = {
-          sink: (0, sink_1.actionsSink)(core),
+          createTransport: (format) => new transport_1.ActionsTransport({ core, format }),
           getLevel: () => levelFromEnv(core, options.env)
         };
         super(host, { format: options.format ?? winston_host_1.plainFormat, transports: options.transports });
@@ -37821,20 +37865,26 @@ var require_logger2 = __commonJS({
        * @param level The level to log the time at. Defaults to `info`.
        */
       group(title, level = "info") {
-        return new GroupBenchmark(this, title, level, {
-          start: (name) => {
-            if (this.groupOpen) {
-              return false;
-            }
-            this.groupOpen = true;
-            this.core.startGroup(name);
-            return true;
-          },
-          end: () => {
-            this.groupOpen = false;
-            this.core.endGroup();
-          }
-        });
+        return new GroupBenchmark(this, title, level);
+      }
+      /**
+       * Opens a log group unless one is open already; groups can't nest.
+       *
+       * @internal
+       * @returns Whether a group was opened, so the caller knows to end it.
+       */
+      startGroup(title) {
+        if (this.groupOpen) {
+          return false;
+        }
+        this.groupOpen = true;
+        this.core.startGroup(title);
+        return true;
+      }
+      /** @internal */
+      endGroup() {
+        this.groupOpen = false;
+        this.core.endGroup();
       }
       /** Masks a value in the workflow log from now on, such as a token read at runtime. */
       maskSecret(value) {
@@ -37842,6 +37892,32 @@ var require_logger2 = __commonJS({
       }
     };
     exports.ActionsLogger = ActionsLogger2;
+  }
+});
+
+// node_modules/@awalsh128/winston-github-actions/dist/check-target.js
+var require_check_target = __commonJS({
+  "node_modules/@awalsh128/winston-github-actions/dist/check-target.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.targetFromEnv = targetFromEnv;
+    var node_fs_1 = __require("node:fs");
+    function readPullRequestHeadSha(env) {
+      const eventPath = env.GITHUB_EVENT_PATH;
+      if (!eventPath || !(0, node_fs_1.existsSync)(eventPath)) {
+        return void 0;
+      }
+      const event = JSON.parse((0, node_fs_1.readFileSync)(eventPath, "utf8"));
+      return event.pull_request?.head?.sha;
+    }
+    function targetFromEnv(env = process.env) {
+      const [owner, repo] = (env.GITHUB_REPOSITORY ?? "").split("/");
+      const sha = readPullRequestHeadSha(env) ?? env.GITHUB_SHA;
+      if (!owner || !repo || !sha) {
+        throw new Error("Can't tell the repository and commit to annotate; set GITHUB_REPOSITORY and GITHUB_SHA.");
+      }
+      return { owner, repo, sha };
+    }
   }
 });
 
@@ -37891,26 +37967,12 @@ var require_check_run = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CheckRunTransport = exports.MAX_ANNOTATIONS_PER_REQUEST = void 0;
-    exports.targetFromEnv = targetFromEnv;
-    var node_fs_1 = __require("node:fs");
     var winston_host_1 = require_dist();
     var triple_beam_1 = require_triple_beam();
     var winston = __importStar(require_winston());
     var winston_transport_1 = __importDefault(require_winston_transport());
+    var check_target_1 = require_check_target();
     exports.MAX_ANNOTATIONS_PER_REQUEST = 50;
-    function targetFromEnv(env = process.env) {
-      const [owner, repo] = (env.GITHUB_REPOSITORY ?? "").split("/");
-      let sha = env.GITHUB_SHA;
-      try {
-        const event = JSON.parse((0, node_fs_1.readFileSync)(env.GITHUB_EVENT_PATH ?? "", "utf8"));
-        sha = event.pull_request?.head?.sha ?? sha;
-      } catch {
-      }
-      if (!owner || !repo || !sha) {
-        throw new Error("Can't tell the repository and commit to annotate; set GITHUB_REPOSITORY and GITHUB_SHA.");
-      }
-      return { owner, repo, sha };
-    }
     var CheckRunTransport = class extends winston_transport_1.default {
       octokit;
       target;
@@ -37920,7 +37982,7 @@ var require_check_run = __commonJS({
       constructor(opts) {
         super({ format: winston.format.printf(winston_host_1.plainFormat), ...opts });
         this.octokit = opts.octokit;
-        this.target = opts.target ?? targetFromEnv();
+        this.target = opts.target ?? (0, check_target_1.targetFromEnv)();
         this.name = opts.name ?? "Log annotations";
         this.conclusion = opts.conclusion ?? "neutral";
       }
@@ -37935,15 +37997,19 @@ var require_check_run = __commonJS({
         if (location && (level === "error" || level === "warn")) {
           const line = location.line ?? 1;
           const endLine = location.endLine ?? line;
-          this.annotations.push({
+          const annotation = {
             path: location.path,
             start_line: line,
             end_line: endLine,
-            // GitHub only accepts columns on single-line annotations.
-            ...location.column !== void 0 && endLine === line ? { start_column: location.column, end_column: location.column } : {},
             annotation_level: level === "error" ? "failure" : "warning",
             message: String(info[triple_beam_1.MESSAGE] ?? info.message ?? "")
-          });
+          };
+          const singleLine = endLine === line;
+          if (location.column !== void 0 && singleLine) {
+            annotation.start_column = location.column;
+            annotation.end_column = location.column;
+          }
+          this.annotations.push(annotation);
         }
         next();
       }
@@ -38014,8 +38080,9 @@ var require_dist2 = __commonJS({
     __exportStar(require_dist(), exports);
     __exportStar(require_core2(), exports);
     __exportStar(require_logger2(), exports);
-    __exportStar(require_sink(), exports);
+    __exportStar(require_transport(), exports);
     __exportStar(require_check_run(), exports);
+    __exportStar(require_check_target(), exports);
   }
 });
 
