@@ -88,9 +88,11 @@ Node, `@actions/core` or `winston` upgrade.
   action there.
 - NEVER bump `winston-host-adapters` to a newer `npm-publish-strict` until that action supports workspace
   packages again; a change in `npm-publish-strict` must not assume it can upgrade.
-- `ts-apt` pins `npm-publish-strict` to a full commit SHA; make it one a release tag points at, with a
-  matching `# vX.Y.Z` comment (`git tag --points-at <sha>`). Its current pin `6b3ccbe` (commented `v1.0.0`)
-  has no tag; `v1.0.0` is `b778d3a`.
+- `ts-apt` stays on `npm-publish-strict` `6b3ccbe` (commented `v1.0.0`, no tag; `v1.0.0` is `b778d3a`). Its
+  `release.yml` passes `dry-run` and `git-credentials`, and `v1.0.0` declares neither, so a dry run would
+  release for real. Move it only to a tagged release that has `dry-run`, and pass the Octo STS token as
+  `GIT_CREDENTIALS` in the step's `env` instead of the `git-credentials` input, which npm-publish-strict #22
+  removed. Make the `# vX.Y.Z` comment match (`git tag --points-at <sha>`).
 - This repo: a change to an action input or output is a change for `ts-apt`, which publishes with it
   (`winston-host-adapters` stays on `cee67e7`); bump `@awalsh128/winston-github-actions` here only after it is
   released.
