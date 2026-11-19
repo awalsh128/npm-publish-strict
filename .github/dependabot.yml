@@ -13,9 +13,6 @@ updates:
       # still loads writer 8, so release notes fail to render. Lift this when it supports writer 9.
       - dependency-name: conventional-changelog-conventionalcommits
         update-types: ["version-update:semver-major"]
-      # @awalsh128/winston-github-actions 2.0.0 still needs @actions/core <3. Lift this when it accepts 3.
-      - dependency-name: "@actions/core"
-        update-types: ["version-update:semver-major"]
   # typedoc and the TypeScript 6 it needs, apart from the root lockfile (see its package.json).
   - package-ecosystem: npm
     directory: /scripts/ops/typedoc
