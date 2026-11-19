@@ -89,7 +89,6 @@ describe("release.config.mjs success step", () => {
     cwd,
     nextRelease: {
       ...context.nextRelease,
-      channel: "rc",
       version: "1.1.0-rc.1",
       gitTag: "v1.1.0-rc.1",
       notes: "## Notes\n- a",
@@ -112,14 +111,13 @@ describe("release.config.mjs success step", () => {
     return readFileSync(file, "utf8");
   }
 
-  it("success with a candidate release writes its tag, package, channel and notes", async () => {
+  it("success with a candidate release writes its tag, package and notes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "pkg-"));
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@s/pkg" }));
     const out = parseOutputs(await outputsOf(releaseContext(dir)));
     expect(out).toMatchObject({
       tag: "v1.1.0-rc.1",
       "package-name": "@s/pkg",
-      channel: "rc",
       prerelease: "true",
       published: "false",
       "release-url": "https://github.com/o/r/releases/tag/x",

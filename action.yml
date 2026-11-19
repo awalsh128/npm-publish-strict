@@ -36,10 +36,6 @@ outputs:
     description: "Git tag of the release (v<version>); empty when nothing was released."
   package-name:
     description: "Name of the released package from its package.json; empty when nothing was released."
-  channel:
-    description:
-      "Release channel semantic-release assigns: the candidate branch's name (such as 'staging') for a
-      candidate, empty for an official release."
   prerelease:
     description:
       "'true' for a release candidate, 'false' for an official release; empty when nothing was released."
@@ -56,8 +52,6 @@ outputs:
     description: "URL of the GitHub Release; empty when nothing was released."
   release-notes:
     description: "Markdown release notes of the release; empty when nothing was released."
-  docs-dir:
-    description: "Directory holding the built API docs (docs/api); empty when nothing was released."
 
 runs:
   using: node24

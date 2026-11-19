@@ -9,7 +9,7 @@ import { generateNotes } from "@semantic-release/release-notes-generator";
 import { Version } from "./dist/semver.js";
 
 // The conventions (branches, tag format, docs script and directory) are shared with the action's checks.
-const { tagFormat, releaseBranch, candidateBranch, docsScript, docsDir } = JSON.parse(
+const { tagFormat, releaseBranch, candidateBranch, docsScript } = JSON.parse(
   readFileSync(new URL("data/metadata.json", import.meta.url), "utf8")
 );
 const baseline = process.env.BASELINE_COMMIT?.trim();
@@ -50,7 +50,6 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
     version: nextRelease.version,
     tag: nextRelease.gitTag,
     "package-name": name,
-    channel: nextRelease.channel ?? "",
     prerelease: Version.parse(nextRelease.version)?.isPrerelease ? "true" : "false",
     "release-type": nextRelease.type,
     "git-head": nextRelease.gitHead,
@@ -58,7 +57,6 @@ const releaseOutputs = ({ cwd, nextRelease, releases = [] }) => {
     "npm-url": urlOf(/npm/i),
     "release-url": urlOf(/github/i),
     "release-notes": nextRelease.notes ?? "",
-    "docs-dir": docsDir,
   };
 };
 

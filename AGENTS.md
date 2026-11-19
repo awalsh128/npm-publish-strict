@@ -49,8 +49,8 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
   `version` `0.0.0-semantically-released`, no `CHANGELOG.md`, no release commits, `main` official / `staging`
   rc, npm trusted publishing (OIDC), typedoc via a `docs:api` script, Conventional Commits (from
   `baseline-commit` when set).
-- `data/metadata.json` holds the fixed conventions (branches, tag format, docs script and directory) for both
-  the checks and `release.config.mjs`; action inputs read their defaults from `action.yml` only.
+- `data/metadata.json` holds the fixed conventions (branches, tag format, docs script) for both the checks and
+  `release.config.mjs`; action inputs read their defaults from `action.yml` only.
 - `data/commit-types.json` is the only list of commit prefixes: it feeds the `commit-messages` check,
   semantic-release's `releaseRules` and the release notes sections. Change it there, never in the regex or the
   config.
