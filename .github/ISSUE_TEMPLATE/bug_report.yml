@@ -1,0 +1,41 @@
+name: Bug report
+description: The action failed, passed when it shouldn't, or released something unexpected.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Action version
+      description: "The commit SHA or tag you pin, as in `uses: awalsh128/npm-publish-strict@<sha>`."
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options: [release, check]
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow file
+      description: The workflow that calls the action, with secrets removed.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description:
+        The `failed-checks` output and the job log or summary. Remove anything you don't want public.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
