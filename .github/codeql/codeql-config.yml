@@ -1,0 +1,5 @@
+# dist/ is the committed esbuild bundle of src/ and its dependencies. CodeQL scans src/ directly, and
+# Dependabot and npm audit cover the dependencies, so alerts in the bundle only duplicate third-party
+# findings and fail any pull request that changes it.
+paths-ignore:
+  - dist
