@@ -4,17 +4,6 @@ name: Agent Config
 # Agent Skills spec. Fix a failure locally with:
 #   npx -y rulesync@<RULESYNC_VERSION> generate
 on:
-  push:
-    branches: [main]
-    paths:
-      - .rulesync/**
-      - rulesync.jsonc
-      - .agents/**
-      - .claude/**
-      - .codex/**
-      - .github/agents/**
-      - .github/skills
-      - .github/workflows/agent-config.yml
   pull_request:
     paths:
       - .rulesync/**
