@@ -9,10 +9,10 @@ async function main(): Promise<void> {
   const log = createLogger();
   const env = process.env;
   const inputs = readInputs(env);
-  const ctx = buildContext(inputs.mode, inputs.baselineCommit, env);
+  const ctx = buildContext(inputs, env);
 
   const results = await runChecks(ctx);
-  const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
+  const failedChecks = results.filter((r) => r.failure).map((r) => r.check.id);
   setOutput("failed-checks", failedChecks.join(","));
   if (!(await report(ctx, results, log))) {
     process.exitCode = 1;

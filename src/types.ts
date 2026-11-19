@@ -84,7 +84,7 @@ export interface Context {
   packageExists: (name: string) => Promise<boolean | null>;
 }
 
-export type CheckOutcome = Failure | Failure[] | null;
+export type CheckOutcome = Failure | null;
 
 /**
  * A precondition. `run` returns null when satisfied. Every run of the action, and `mode: check`,
@@ -100,5 +100,6 @@ export interface Check {
 
 export interface CheckResult {
   check: Check;
-  failures: Failure[];
+  /** Null when the check passed. */
+  failure: Failure | null;
 }

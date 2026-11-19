@@ -4,8 +4,11 @@ import { join } from "node:path";
 import { getIDToken } from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import { NPM_REGISTRY } from "./constants.js";
-import type { Context, ExchangeResult, Mode, PackageJson } from "./types.js";
+import type { Inputs } from "./release.js";
+import type { Context, ExchangeResult, PackageJson } from "./types.js";
 
+/** Network calls give up after this long, so a stalled server can't hang a release job. */
+const timeout = (): AbortSignal => AbortSignal.timeout(10_000);
 
 function readPackage(cwd: string): PackageJson | null {
   try {
@@ -27,17 +30,23 @@ async function exchangeNpmToken(env: Context["env"], name: string): Promise<Exch
   } catch (error) {
     return { ok: false, status: 0, message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}` };
   }
-  const res = await fetch(`${NPM_REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escapeName(name)}`, {
-    method: "POST",
-    headers: { Accept: "application/json", Authorization: `Bearer ${value}` },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${NPM_REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escapeName(name)}`, {
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: `Bearer ${value}` },
+      signal: timeout(),
+    });
+  } catch (error) {
+    return { ok: false, status: 0, message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}` };
+  }
   const body = (await res.json().catch(() => ({}))) as { token?: string; message?: string };
   // The exchanged token is discarded on purpose: this only proves the exchange works.
   return { ok: res.ok && !!body.token, status: res.status, message: body.message ?? res.statusText };
 }
 
-/** Builds the context for the real environment, with the action's `mode` and `baseline-commit` inputs. */
-export function buildContext(mode: Mode, baseline: string, env: Context["env"] = process.env, cwd = process.cwd()): Context {
+/** Builds the context for the real environment from the action's inputs. */
+export function buildContext(inputs: Inputs, env: Context["env"] = process.env, cwd = process.cwd()): Context {
   /** stdout of a git command in the repository, or null when it fails. */
   const git = (args: string[]): string | null => {
     try {
@@ -46,17 +55,22 @@ export function buildContext(mode: Mode, baseline: string, env: Context["env"] =
       return null;
     }
   };
+  // Asked by three checks, so ask git once.
+  let shallow: boolean | null | undefined;
   return {
     env,
     cwd,
-    mode,
+    mode: inputs.mode,
     branch: env.GITHUB_REF_NAME,
     repository: env.GITHUB_REPOSITORY,
-    baseline: baseline || undefined,
+    baseline: inputs.baselineCommit || undefined,
     pkg: readPackage(cwd),
     shallow() {
-      const out = git(["rev-parse", "--is-shallow-repository"]);
-      return out === null ? null : out === "true";
+      if (shallow === undefined) {
+        const out = git(["rev-parse", "--is-shallow-repository"]);
+        shallow = out === null ? null : out === "true";
+      }
+      return shallow;
     },
     npmVersion() {
       try {
@@ -79,13 +93,12 @@ export function buildContext(mode: Mode, baseline: string, env: Context["env"] =
         });
     },
     async repoIsPublic() {
-      const token = env["INPUT_GITHUB-TOKEN"] ?? env.GITHUB_TOKEN;
       if (!env.GITHUB_REPOSITORY) return null;
       try {
         const octokit = new Octokit({
-          auth: token,
+          auth: inputs.githubToken || env.GITHUB_TOKEN,
           baseUrl: env.GITHUB_API_URL,
-          request: { signal: AbortSignal.timeout(10_000) },
+          request: { signal: timeout() },
         });
         const [owner = "", repo = ""] = env.GITHUB_REPOSITORY.split("/");
         const { data } = await octokit.rest.repos.get({ owner, repo });
@@ -97,7 +110,7 @@ export function buildContext(mode: Mode, baseline: string, env: Context["env"] =
     exchangeNpmToken: (name) => exchangeNpmToken(env, name),
     async packageExists(name) {
       try {
-        const res = await fetch(`${NPM_REGISTRY}/${escapeName(name)}`, { method: "HEAD" });
+        const res = await fetch(`${NPM_REGISTRY}/${escapeName(name)}`, { method: "HEAD", signal: timeout() });
         return res.status === 404 ? false : res.ok ? true : null;
       } catch {
         return null;

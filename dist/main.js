@@ -4930,11 +4930,11 @@ var require_timers = __commonJS({
        *
        * @param {NodeJS.Timeout|FastTimer} timeout
        */
-      clearTimeout(timeout) {
-        if (timeout[kFastTimer]) {
-          timeout.clear();
+      clearTimeout(timeout2) {
+        if (timeout2[kFastTimer]) {
+          timeout2.clear();
         } else {
-          clearTimeout(timeout);
+          clearTimeout(timeout2);
         }
       },
       /**
@@ -4957,8 +4957,8 @@ var require_timers = __commonJS({
        *
        * @param {FastTimer} timeout
        */
-      clearFastTimeout(timeout) {
-        timeout.clear();
+      clearFastTimeout(timeout2) {
+        timeout2.clear();
       },
       /**
        * The now method returns the value of the internal fast timer clock.
@@ -5063,13 +5063,13 @@ var require_connect = __commonJS({
         }
       };
     }
-    function buildConnector({ allowH2, maxCachedSessions, socketPath, timeout, session: customSession, ...opts }) {
+    function buildConnector({ allowH2, maxCachedSessions, socketPath, timeout: timeout2, session: customSession, ...opts }) {
       if (maxCachedSessions != null && (!Number.isInteger(maxCachedSessions) || maxCachedSessions < 0)) {
         throw new InvalidArgumentError("maxCachedSessions must be a positive integer or zero");
       }
       const options = { path: socketPath, ...opts };
       const sessionCache = new SessionCache(maxCachedSessions == null ? 100 : maxCachedSessions);
-      timeout = timeout == null ? 1e4 : timeout;
+      timeout2 = timeout2 == null ? 1e4 : timeout2;
       allowH2 = allowH2 != null ? allowH2 : false;
       return function connect({ hostname, host, protocol, port, servername, localAddress, httpSocket }, callback) {
         let socket;
@@ -5115,7 +5115,7 @@ var require_connect = __commonJS({
           const keepAliveInitialDelay = options.keepAliveInitialDelay === void 0 ? 6e4 : options.keepAliveInitialDelay;
           socket.setKeepAlive(true, keepAliveInitialDelay);
         }
-        const clearConnectTimeout = setupConnectTimeout(new WeakRef(socket), { timeout, hostname, port });
+        const clearConnectTimeout = setupConnectTimeout(new WeakRef(socket), { timeout: timeout2, hostname, port });
         socket.setNoDelay(true).once(protocol === "https:" ? "secureConnect" : "connect", function() {
           queueMicrotask(clearConnectTimeout);
           if (callback) {
@@ -8647,14 +8647,14 @@ var require_client_h1 = __commonJS({
         if (this.shouldKeepAlive && client[kPipelining]) {
           const keepAliveTimeout = this.keepAlive ? util.parseKeepAliveTimeout(this.keepAlive) : null;
           if (keepAliveTimeout != null) {
-            const timeout = Math.min(
+            const timeout2 = Math.min(
               keepAliveTimeout - client[kKeepAliveTimeoutThreshold],
               client[kKeepAliveMaxTimeout]
             );
-            if (timeout <= 0) {
+            if (timeout2 <= 0) {
               socket[kReset] = true;
             } else {
-              client[kKeepAliveTimeoutValue] = timeout;
+              client[kKeepAliveTimeoutValue] = timeout2;
             }
           } else {
             client[kKeepAliveTimeoutValue] = client[kKeepAliveDefaultTimeout];
@@ -36239,7 +36239,7 @@ var require_exception_handler = __commonJS({
         const info = this.getAllInfo(err);
         const handlers = this._getExceptionHandlers();
         let doExit = typeof this.logger.exitOnError === "function" ? this.logger.exitOnError(err) : this.logger.exitOnError;
-        let timeout;
+        let timeout2;
         if (!handlers.length && doExit) {
           console.warn("winston: exitOnError cannot be true with no exception handlers.");
           console.warn("winston: not exiting process.");
@@ -36249,8 +36249,8 @@ var require_exception_handler = __commonJS({
           debug("doExit", doExit);
           debug("process._exiting", process._exiting);
           if (doExit && !process._exiting) {
-            if (timeout) {
-              clearTimeout(timeout);
+            if (timeout2) {
+              clearTimeout(timeout2);
             }
             process.exit(1);
           }
@@ -36273,7 +36273,7 @@ var require_exception_handler = __commonJS({
         }, () => doExit && gracefulExit());
         this.logger.log(info);
         if (doExit) {
-          timeout = setTimeout(gracefulExit, 3e3);
+          timeout2 = setTimeout(gracefulExit, 3e3);
         }
       }
       /**
@@ -36479,7 +36479,7 @@ var require_rejection_handler = __commonJS({
         const info = this.getAllInfo(err);
         const handlers = this._getRejectionHandlers();
         let doExit = typeof this.logger.exitOnError === "function" ? this.logger.exitOnError(err) : this.logger.exitOnError;
-        let timeout;
+        let timeout2;
         if (!handlers.length && doExit) {
           console.warn("winston: exitOnError cannot be true with no rejection handlers.");
           console.warn("winston: not exiting process.");
@@ -36489,8 +36489,8 @@ var require_rejection_handler = __commonJS({
           debug("doExit", doExit);
           debug("process._exiting", process._exiting);
           if (doExit && !process._exiting) {
-            if (timeout) {
-              clearTimeout(timeout);
+            if (timeout2) {
+              clearTimeout(timeout2);
             }
             process.exit(1);
           }
@@ -36517,7 +36517,7 @@ var require_rejection_handler = __commonJS({
         );
         this.logger.log(info);
         if (doExit) {
-          timeout = setTimeout(gracefulExit, 3e3);
+          timeout2 = setTimeout(gracefulExit, 3e3);
         }
       }
       /**
@@ -38120,6 +38120,9 @@ function listWorkflowFiles(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && [".yml", ".yaml"].includes(extname(e.name))).map((e) => join2(e.parentPath, e.name));
 }
+var baselineIsValid = (ctx) => !ctx.baseline || ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline);
+var baselineSnippet = (sha) => `  with:
+    baseline-commit: ${sha ?? "<sha>"}`;
 var publishes = (ctx) => ctx.branch === RELEASE_BRANCH;
 var checks = [
   {
@@ -38292,7 +38295,7 @@ var checks = [
     id: "baseline-commit",
     title: "Baseline commit is in this branch's history",
     applies: (ctx) => !!ctx.baseline && ctx.shallow() === false,
-    run: (ctx) => ctx.baseline && ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline) ? null : {
+    run: (ctx) => baselineIsValid(ctx) ? null : {
       problem: `baseline-commit '${ctx.baseline}' is not a commit in the history of '${ctx.branch}'.`,
       details: [
         "It must be a full or abbreviated commit SHA that is an ancestor of the commit being released."
@@ -38309,8 +38312,7 @@ var checks = [
       ],
       manual: [
         "Set the action's `baseline-commit` input to a SHA on this branch, for example the last commit with a non-conventional message:",
-        `  with:
-    baseline-commit: ${ctx.head() ?? "<sha>"}`,
+        baselineSnippet(ctx.head()),
         "Remove the input to enforce Conventional Commits on the whole history."
       ],
       links: [LINKS.conventionalCommits]
@@ -38321,7 +38323,7 @@ var checks = [
     title: "Commits follow Conventional Commits",
     applies: (ctx) => ctx.shallow() === false,
     run: (ctx) => {
-      if (ctx.baseline && !(ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline))) return null;
+      if (!baselineIsValid(ctx)) return null;
       const bad = ctx.commits(ctx.baseline).filter((c) => !CONVENTIONAL_HEADER.test(c.subject));
       if (bad.length === 0) return null;
       const shown = bad.slice(0, 20).map((c) => `${c.hash.slice(0, 7)} ${c.subject}`);
@@ -38346,8 +38348,7 @@ var checks = [
         ],
         manual: [
           `Either set the action's \`baseline-commit\` input to a commit at or after the last offender, so only newer commits are enforced:`,
-          `  with:
-    baseline-commit: ${head ?? "<sha>"}`,
+          baselineSnippet(head),
           "Or rewrite the messages: `git rebase -i <parent-of-oldest-offender>`, mark each as `reword`, then `git push --force-with-lease`. This rewrites shared history, so coordinate with your collaborators first.",
           "Going forward, enforce the format before merge, for example with commitlint in a husky `commit-msg` hook and in your pull request workflow."
         ],
@@ -38456,7 +38457,7 @@ async function runChecks(ctx, list = checks) {
   for (const check of list) {
     if (check.applies && !check.applies(ctx)) continue;
     const outcome = await check.run(ctx);
-    results.push({ check, failures: outcome === null ? [] : Array.isArray(outcome) ? outcome : [outcome] });
+    results.push({ check, failure: outcome });
   }
   return results;
 }
@@ -42521,6 +42522,7 @@ var Octokit2 = Octokit.plugin(requestLog, legacyRestEndpointMethods, paginateRes
 );
 
 // src/context.ts
+var timeout = () => AbortSignal.timeout(1e4);
 function readPackage(cwd) {
   try {
     return JSON.parse(readFileSync3(join3(cwd, "package.json"), "utf8"));
@@ -42538,14 +42540,20 @@ async function exchangeNpmToken(env, name) {
   } catch (error) {
     return { ok: false, status: 0, message: `GitHub would not issue an OIDC token: ${error instanceof Error ? error.message : String(error)}` };
   }
-  const res = await fetch(`${NPM_REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escapeName(name)}`, {
-    method: "POST",
-    headers: { Accept: "application/json", Authorization: `Bearer ${value}` }
-  });
+  let res;
+  try {
+    res = await fetch(`${NPM_REGISTRY}/-/npm/v1/oidc/token/exchange/package/${escapeName(name)}`, {
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: `Bearer ${value}` },
+      signal: timeout()
+    });
+  } catch (error) {
+    return { ok: false, status: 0, message: `npm did not answer: ${error instanceof Error ? error.message : String(error)}` };
+  }
   const body = await res.json().catch(() => ({}));
   return { ok: res.ok && !!body.token, status: res.status, message: body.message ?? res.statusText };
 }
-function buildContext(mode, baseline, env = process.env, cwd = process.cwd()) {
+function buildContext(inputs, env = process.env, cwd = process.cwd()) {
   const git = (args) => {
     try {
       return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -42553,17 +42561,21 @@ function buildContext(mode, baseline, env = process.env, cwd = process.cwd()) {
       return null;
     }
   };
+  let shallow;
   return {
     env,
     cwd,
-    mode,
+    mode: inputs.mode,
     branch: env.GITHUB_REF_NAME,
     repository: env.GITHUB_REPOSITORY,
-    baseline: baseline || void 0,
+    baseline: inputs.baselineCommit || void 0,
     pkg: readPackage(cwd),
     shallow() {
-      const out = git(["rev-parse", "--is-shallow-repository"]);
-      return out === null ? null : out === "true";
+      if (shallow === void 0) {
+        const out = git(["rev-parse", "--is-shallow-repository"]);
+        shallow = out === null ? null : out === "true";
+      }
+      return shallow;
     },
     npmVersion() {
       try {
@@ -42575,21 +42587,20 @@ function buildContext(mode, baseline, env = process.env, cwd = process.cwd()) {
     head: () => git(["rev-parse", "HEAD"]),
     commitExists: (ref) => git(["cat-file", "-e", `${ref}^{commit}`]) !== null,
     isAncestor: (ref) => git(["merge-base", "--is-ancestor", ref, "HEAD"]) !== null,
-    commits(baseline2) {
-      const out = git(["log", "--no-merges", "--format=%H%x09%s", ...baseline2 ? [`${baseline2}..HEAD`] : ["HEAD"]]);
+    commits(baseline) {
+      const out = git(["log", "--no-merges", "--format=%H%x09%s", ...baseline ? [`${baseline}..HEAD`] : ["HEAD"]]);
       return (out ?? "").split("\n").filter(Boolean).map((line) => {
         const [hash = "", ...rest] = line.split("	");
         return { hash, subject: rest.join("	") };
       });
     },
     async repoIsPublic() {
-      const token = env["INPUT_GITHUB-TOKEN"] ?? env.GITHUB_TOKEN;
       if (!env.GITHUB_REPOSITORY) return null;
       try {
         const octokit = new Octokit2({
-          auth: token,
+          auth: inputs.githubToken || env.GITHUB_TOKEN,
           baseUrl: env.GITHUB_API_URL,
-          request: { signal: AbortSignal.timeout(1e4) }
+          request: { signal: timeout() }
         });
         const [owner = "", repo = ""] = env.GITHUB_REPOSITORY.split("/");
         const { data } = await octokit.rest.repos.get({ owner, repo });
@@ -42601,7 +42612,7 @@ function buildContext(mode, baseline, env = process.env, cwd = process.cwd()) {
     exchangeNpmToken: (name) => exchangeNpmToken(env, name),
     async packageExists(name) {
       try {
-        const res = await fetch(`${NPM_REGISTRY}/${escapeName(name)}`, { method: "HEAD" });
+        const res = await fetch(`${NPM_REGISTRY}/${escapeName(name)}`, { method: "HEAD", signal: timeout() });
         return res.status === 404 ? false : res.ok ? true : null;
       } catch {
         return null;
@@ -42641,9 +42652,10 @@ function releaseEnv(inputs, env) {
     GITHUB_TOKEN: inputs.githubToken
   };
 }
+var RUNTIME_INSTALL_FLAGS = ["--ignore-scripts", "--omit=dev", "--omit=optional"];
 function release(inputs, env, actionPath, cwd) {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
-  run("npm", ["ci", "--ignore-scripts", "--omit=dev", "--omit=optional", "--prefix", actionPath], { cwd });
+  run("npm", ["ci", ...RUNTIME_INSTALL_FLAGS, "--prefix", actionPath], { cwd });
   run(
     join4(actionPath, "node_modules", ".bin", "semantic-release"),
     ["--extends", join4(actionPath, "release.config.mjs")],
@@ -42682,26 +42694,26 @@ function failureMarkdown(check, failure) {
 function verifyMarkdown(env) {
   return renderTemplate("verify.md", { workflow: env.GITHUB_WORKFLOW ?? "this workflow" }) + "\n";
 }
-function summaryMarkdown(env, results) {
-  const failed = results.filter((r) => r.failures.length > 0);
-  if (failed.length === 0) {
+var failedOf = (results) => results.filter((r) => r.failure !== null);
+var sectionOf = (r) => failureMarkdown(r.check, r.failure);
+function summaryFrom(env, results, sections) {
+  if (sections.length === 0) {
     return [renderTemplate("pass-heading.md", { count: results.length }), "", ...results.map((r) => `- ${r.check.title}`), ""].join("\n");
   }
-  const sections = failed.flatMap((r) => r.failures.map((f) => failureMarkdown(r.check, f)));
-  return [renderTemplate("fail-heading.md", { count: failed.length }), "", ...sections, verifyMarkdown(env)].join("\n");
+  return [renderTemplate("fail-heading.md", { count: sections.length }), "", ...sections, verifyMarkdown(env)].join("\n");
 }
 async function report(ctx, results, log = createLogger2()) {
-  for (const r of results) log.info(`${r.failures.length ? "\u2718" : "\u2714"} ${r.check.title}`);
-  for (const r of results) {
-    for (const failure of r.failures) {
-      const group = log.group(`How to fix: ${r.check.title}`);
-      log.info(failureMarkdown(r.check, failure));
-      group.dispose();
-      log.error(`${r.check.title} (${r.check.id}): ${failure.problem}`);
-    }
-  }
-  if (process.env.GITHUB_STEP_SUMMARY) await import_core3.summary.addRaw(summaryMarkdown(ctx.env, results), true).write();
-  return results.every((r) => r.failures.length === 0);
+  for (const r of results) log.info(`${r.failure ? "\u2718" : "\u2714"} ${r.check.title}`);
+  const failed = failedOf(results);
+  const sections = failed.map(sectionOf);
+  failed.forEach((r, i) => {
+    const group = log.group(`How to fix: ${r.check.title}`);
+    log.info(sections[i] ?? "");
+    group.dispose();
+    log.error(`${r.check.title} (${r.check.id}): ${r.failure.problem}`);
+  });
+  if (process.env.GITHUB_STEP_SUMMARY) await import_core3.summary.addRaw(summaryFrom(ctx.env, results, sections), true).write();
+  return failed.length === 0;
 }
 
 // src/main.ts
@@ -42709,9 +42721,9 @@ async function main() {
   const log = createLogger2();
   const env = process.env;
   const inputs = readInputs(env);
-  const ctx = buildContext(inputs.mode, inputs.baselineCommit, env);
+  const ctx = buildContext(inputs, env);
   const results = await runChecks(ctx);
-  const failedChecks = results.filter((r) => r.failures.length > 0).map((r) => r.check.id);
+  const failedChecks = results.filter((r) => r.failure).map((r) => r.check.id);
   (0, import_core4.setOutput)("failed-checks", failedChecks.join(","));
   if (!await report(ctx, results, log)) {
     process.exitCode = 1;

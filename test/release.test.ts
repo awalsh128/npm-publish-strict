@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { actionRoot, readInputs, releaseEnv } from "../src/release.js";
+import { actionRoot, readInputs, releaseEnv, RUNTIME_INSTALL_FLAGS } from "../src/release.js";
 
 /** The INPUT_* variables the runner sets from action.yml's defaults. */
 const DEFAULT_INPUTS = { INPUT_MODE: "release", "INPUT_BASELINE-COMMIT": "", "INPUT_GITHUB-TOKEN": "tok" };
@@ -48,5 +49,11 @@ describe("readInputs", () => {
 
   it("unknown mode throws", () => {
     expect(() => readInputs({ ...DEFAULT_INPUTS, INPUT_MODE: "bogus" })).toThrow("must be 'release' or 'check'");
+  });
+});
+
+describe("RUNTIME_INSTALL_FLAGS", () => {
+  it("ci.yml checks the config loads from an install with the same flags", () => {
+    expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain(`npm ci ${RUNTIME_INSTALL_FLAGS.join(" ")}`);
   });
 });

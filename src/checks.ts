@@ -51,6 +51,13 @@ function listWorkflowFiles(dir: string): string[] {
     .map((e) => join(e.parentPath, e.name));
 }
 
+/** True when the baseline is unset, or is a commit in the history of HEAD. */
+const baselineIsValid = (ctx: Context): boolean =>
+  !ctx.baseline || (ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline));
+
+/** The workflow snippet that sets the action's `baseline-commit` input. */
+const baselineSnippet = (sha: string | null): string => `  with:\n    baseline-commit: ${sha ?? "<sha>"}`;
+
 /** True when this run publishes to npm, which only the official release branch does. */
 const publishes = (ctx: Context): boolean => ctx.branch === RELEASE_BRANCH;
 
@@ -252,7 +259,7 @@ export const checks: readonly Check[] = [
     title: "Baseline commit is in this branch's history",
     applies: (ctx) => !!ctx.baseline && ctx.shallow() === false,
     run: (ctx) =>
-      ctx.baseline && ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline)
+      baselineIsValid(ctx)
         ? null
         : {
             problem: `baseline-commit '${ctx.baseline}' is not a commit in the history of '${ctx.branch}'.`,
@@ -271,7 +278,7 @@ export const checks: readonly Check[] = [
             ],
             manual: [
               "Set the action's `baseline-commit` input to a SHA on this branch, for example the last commit with a non-conventional message:",
-              `  with:\n    baseline-commit: ${ctx.head() ?? "<sha>"}`,
+              baselineSnippet(ctx.head()),
               "Remove the input to enforce Conventional Commits on the whole history.",
             ],
             links: [LINKS.conventionalCommits],
@@ -282,7 +289,7 @@ export const checks: readonly Check[] = [
     title: "Commits follow Conventional Commits",
     applies: (ctx) => ctx.shallow() === false,
     run: (ctx) => {
-      if (ctx.baseline && !(ctx.commitExists(ctx.baseline) && ctx.isAncestor(ctx.baseline))) return null; // reported above
+      if (!baselineIsValid(ctx)) return null; // reported above
       const bad = ctx.commits(ctx.baseline).filter((c) => !CONVENTIONAL_HEADER.test(c.subject));
       if (bad.length === 0) return null;
       const shown = bad.slice(0, 20).map((c) => `${c.hash.slice(0, 7)} ${c.subject}`);
@@ -312,7 +319,7 @@ export const checks: readonly Check[] = [
         ],
         manual: [
           `Either set the action's \`baseline-commit\` input to a commit at or after the last offender, so only newer commits are enforced:`,
-          `  with:\n    baseline-commit: ${head ?? "<sha>"}`,
+          baselineSnippet(head),
           "Or rewrite the messages: `git rebase -i <parent-of-oldest-offender>`, mark each as `reword`, then `git push --force-with-lease`. This rewrites shared history, so coordinate with your collaborators first.",
           "Going forward, enforce the format before merge, for example with commitlint in a husky `commit-msg` hook and in your pull request workflow.",
         ],
@@ -437,7 +444,7 @@ export async function runChecks(ctx: Context, list: readonly Check[] = checks): 
   for (const check of list) {
     if (check.applies && !check.applies(ctx)) continue;
     const outcome = await check.run(ctx);
-    results.push({ check, failures: outcome === null ? [] : Array.isArray(outcome) ? outcome : [outcome] });
+    results.push({ check, failure: outcome });
   }
   return results;
 }
