@@ -14,6 +14,14 @@ const { tagFormat, releaseBranch, candidateBranch, docsScript } = JSON.parse(
 );
 const baseline = process.env.BASELINE_COMMIT?.trim();
 
+// The action's `bump` input: release at least this bump, even when no commit calls for a release.
+const BUMP_RANK = { patch: 1, minor: 2, major: 3 };
+const forcedBump = Object.hasOwn(BUMP_RANK, process.env.RELEASE_BUMP ?? "") ? process.env.RELEASE_BUMP : null;
+const atLeastForced = (type) => {
+  if (!forcedBump) return type;
+  return (BUMP_RANK[type] ?? 0) >= BUMP_RANK[forcedBump] ? type : forcedBump;
+};
+
 // With a baseline, commits it already contains are invisible to versioning and release notes, so
 // history from before Conventional Commits were adopted can't produce a wrong bump.
 const afterBaseline = baseline
@@ -65,8 +73,12 @@ export default {
   branches: [{ name: candidateBranch, prerelease: "rc" }, releaseBranch],
   plugins: [
     {
-      analyzeCommits: (config, context) =>
-        analyzeCommits({ ...preset, releaseRules, ...config }, visible(context)),
+      analyzeCommits: async (config, context) => {
+        const type = await analyzeCommits({ ...preset, releaseRules, ...config }, visible(context));
+        const released = atLeastForced(type);
+        if (released !== type) context.logger.log(`The bump input raises this release to ${released}.`);
+        return released;
+      },
     },
     { generateNotes: (config, context) => generateNotes({ ...preset, ...config }, visible(context)) },
     // Trusted publishing (OIDC): no npm token. Candidates and dry runs skip the publish.

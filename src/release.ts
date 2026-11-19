@@ -6,10 +6,17 @@ import type { Mode } from "./types.js";
 
 type Env = Record<string, string | undefined>;
 
+/** The smallest bump the `bump` input forces; `auto` forces none. */
+export type Bump = "auto" | "patch" | "minor" | "major";
+
+const BUMPS: readonly Bump[] = ["auto", "patch", "minor", "major"];
+
 /** Inputs of the action, read from the INPUT_* variables the runner sets from action.yml. */
 export interface Inputs {
   mode: Mode;
   baselineCommit: string;
+  /** The smallest version bump to release, whatever the commits call for. */
+  bump: Bump;
   /** True to run semantic-release with `--dry-run`: nothing is tagged or published. */
   dryRun: boolean;
   githubToken: string;
@@ -30,12 +37,15 @@ export function readInputs(env: Env): Inputs {
   const mode = input("mode");
   if (mode !== "release" && mode !== "check")
     throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
+  const bump = BUMPS.find((b) => b === input("bump"));
+  if (!bump) throw new Error(`Input 'bump' must be one of ${BUMPS.join(", ")}, not '${input("bump")}'.`);
   const dryRun = input("dry-run");
   if (dryRun !== "true" && dryRun !== "false")
     throw new Error(`Input 'dry-run' must be 'true' or 'false', not '${dryRun}'.`);
   return {
     mode,
     baselineCommit: input("baseline-commit"),
+    bump,
     dryRun: dryRun === "true",
     githubToken: input("github-token"),
   };
@@ -59,6 +69,8 @@ export function releaseEnv(inputs: Inputs, env: Env): Env {
   return {
     ...env,
     BASELINE_COMMIT: inputs.baselineCommit,
+    // release.config.mjs releases at least this bump; 'auto' leaves it to the commits.
+    RELEASE_BUMP: inputs.bump,
     NPM_PUBLISH: publish ? "true" : "false",
     // Always sign: npm attaches a Sigstore provenance attestation of the source repo and workflow.
     ...(publish ? { NPM_CONFIG_PROVENANCE: "true" } : {}),

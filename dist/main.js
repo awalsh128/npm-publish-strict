@@ -41656,6 +41656,7 @@ function buildContext(inputs, env = process.env, cwd = process.cwd()) {
 import { spawnSync } from "node:child_process";
 import { dirname as dirname4, join as join6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
+var BUMPS = ["auto", "patch", "minor", "major"];
 function actionRoot(moduleUrl = import.meta.url) {
   return join6(dirname4(fileURLToPath2(moduleUrl)), "..");
 }
@@ -41664,12 +41665,15 @@ function readInputs(env) {
   const mode = input("mode");
   if (mode !== "release" && mode !== "check")
     throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
+  const bump = BUMPS.find((b) => b === input("bump"));
+  if (!bump) throw new Error(`Input 'bump' must be one of ${BUMPS.join(", ")}, not '${input("bump")}'.`);
   const dryRun = input("dry-run");
   if (dryRun !== "true" && dryRun !== "false")
     throw new Error(`Input 'dry-run' must be 'true' or 'false', not '${dryRun}'.`);
   return {
     mode,
     baselineCommit: input("baseline-commit"),
+    bump,
     dryRun: dryRun === "true",
     githubToken: input("github-token")
   };
@@ -41687,6 +41691,8 @@ function releaseEnv(inputs, env) {
   return {
     ...env,
     BASELINE_COMMIT: inputs.baselineCommit,
+    // release.config.mjs releases at least this bump; 'auto' leaves it to the commits.
+    RELEASE_BUMP: inputs.bump,
     NPM_PUBLISH: publish ? "true" : "false",
     // Always sign: npm attaches a Sigstore provenance attestation of the source repo and workflow.
     ...publish ? { NPM_CONFIG_PROVENANCE: "true" } : {},

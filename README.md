@@ -98,6 +98,7 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | Input             | Default        | Purpose                                                                                               |
 | ----------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
 | `mode`            | `release`      | `check` only verifies preconditions, from any branch                                                  |
+| `bump`            | `auto`         | Smallest bump to release (`patch`, `minor`, `major`); commits can raise it                            |
 | `dry-run`         | `false`        | `true` releases nothing: the checks run and semantic-release logs the version and notes it would make |
 | `baseline-commit` |                | Enforce and version only commits after this SHA                                                       |
 | `github-token`    | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
