@@ -80,13 +80,20 @@ Node, `@actions/core` or `winston` upgrade.
 - Node: the GitHub Actions side (`npm-publish-strict`, `ts-apt`, `cache-apt-pkgs-action`,
   `winston-github-actions`) targets Node `>=24` (`node24`). `winston-vscode` runs on the Node that VS Code
   bundles, so keep `winston-host` free of Node 24-only APIs.
-- `npm-publish-strict` and `winston-host-adapters` form a loop, which the pins break: a
-  `winston-github-actions` release reaches the action only after `npm-publish-strict` bumps and releases, and
-  `winston-host-adapters` keeps its pinned action SHA until it bumps it. Bump one side at a time.
-- Pin `npm-publish-strict` to a full commit SHA that a release tag points at, and make the `# vX.Y.Z` comment
-  match (`git tag --points-at <sha>`).
-- This repo: a change to an action input or output is a change for `ts-apt` and `winston-host-adapters`, which
-  publish with it; bump `@awalsh128/winston-github-actions` here only after it is released.
+- `npm-publish-strict` and `winston-host-adapters` form a loop. `winston-host-adapters` is held on
+  `npm-publish-strict` `cee67e7` (commented `v1.1.0`, no tag) on purpose: its `publish.yml` releases each
+  workspace package with per-package inputs (`working-directory`, `tag-format`, `commit-paths`,
+  `pin-dependencies`, `dry-run`, `git-credentials`) that later versions removed. A newer action ignores an
+  undeclared input with only a warning, so `dry-run: true` would release for real. Dependabot ignores that
+  action there.
+- NEVER bump `winston-host-adapters` to a newer `npm-publish-strict` until that action supports workspace
+  packages again; a change in `npm-publish-strict` must not assume it can upgrade.
+- `ts-apt` pins `npm-publish-strict` to a full commit SHA; make it one a release tag points at, with a
+  matching `# vX.Y.Z` comment (`git tag --points-at <sha>`). Its current pin `6b3ccbe` (commented `v1.0.0`)
+  has no tag; `v1.0.0` is `b778d3a`.
+- This repo: a change to an action input or output is a change for `ts-apt`, which publishes with it
+  (`winston-host-adapters` stays on `cee67e7`); bump `@awalsh128/winston-github-actions` here only after it is
+  released.
 
 ## Branches And Releases
 
