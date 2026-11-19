@@ -21,7 +21,9 @@ jobs:
   analyze:
     name: analyze (${{ matrix.language }})
     # Fork PRs can't upload security events.
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    if:
+      ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
+      github.repository }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
