@@ -51,7 +51,7 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
   `baseline-commit` when set).
 - `data/metadata.json` holds the fixed conventions (branches, tag format, docs script) for both the checks and
   `release.config.mjs`; action inputs read their defaults from `action.yml` only.
-- `data/commit-types.json` is the only list of commit prefixes: it feeds the `commits` check,
+- `data/commit-types.json` is the only list of commit prefixes: it feeds the `commit-messages` check,
   semantic-release's `releaseRules` and the release notes sections. Change it there, never in the regex or the
   config.
 - ASK FIRST before changing action inputs/outputs; consumers depend on them.
