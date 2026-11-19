@@ -42706,7 +42706,18 @@ function readInputs(env) {
   const mode = input("mode");
   if (mode !== "release" && mode !== "check")
     throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
-  return { mode, baselineCommit: input("baseline-commit"), githubToken: input("github-token") };
+  const dryRun = input("dry-run");
+  if (dryRun !== "true" && dryRun !== "false")
+    throw new Error(`Input 'dry-run' must be 'true' or 'false', not '${dryRun}'.`);
+  return {
+    mode,
+    baselineCommit: input("baseline-commit"),
+    dryRun: dryRun === "true",
+    githubToken: input("github-token")
+  };
+}
+function semanticReleaseArgs(inputs, actionPath) {
+  return ["--extends", join4(actionPath, "release.config.mjs"), ...inputs.dryRun ? ["--dry-run"] : []];
 }
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", ...options });
@@ -42729,14 +42740,10 @@ var RUNTIME_INSTALL_FLAGS = ["--ignore-scripts", "--omit=dev", "--omit=optional"
 function release(inputs, env, actionPath, cwd) {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
   run("npm", ["ci", ...RUNTIME_INSTALL_FLAGS, "--prefix", actionPath], { cwd });
-  run(
-    join4(actionPath, "node_modules", ".bin", "semantic-release"),
-    ["--extends", join4(actionPath, "release.config.mjs")],
-    {
-      cwd,
-      env: releaseEnv(inputs, env)
-    }
-  );
+  run(join4(actionPath, "node_modules", ".bin", "semantic-release"), semanticReleaseArgs(inputs, actionPath), {
+    cwd,
+    env: releaseEnv(inputs, env)
+  });
 }
 
 // src/logger.ts

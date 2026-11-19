@@ -10,6 +10,8 @@ type Env = Record<string, string | undefined>;
 export interface Inputs {
   mode: Mode;
   baselineCommit: string;
+  /** True to run semantic-release with `--dry-run`: nothing is tagged or published. */
+  dryRun: boolean;
   githubToken: string;
 }
 
@@ -28,7 +30,20 @@ export function readInputs(env: Env): Inputs {
   const mode = input("mode");
   if (mode !== "release" && mode !== "check")
     throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
-  return { mode, baselineCommit: input("baseline-commit"), githubToken: input("github-token") };
+  const dryRun = input("dry-run");
+  if (dryRun !== "true" && dryRun !== "false")
+    throw new Error(`Input 'dry-run' must be 'true' or 'false', not '${dryRun}'.`);
+  return {
+    mode,
+    baselineCommit: input("baseline-commit"),
+    dryRun: dryRun === "true",
+    githubToken: input("github-token"),
+  };
+}
+
+/** Arguments for semantic-release: this action's config, and `--dry-run` when nothing may be released. */
+export function semanticReleaseArgs(inputs: Inputs, actionPath: string): string[] {
+  return ["--extends", join(actionPath, "release.config.mjs"), ...(inputs.dryRun ? ["--dry-run"] : [])];
 }
 
 function run(command: string, args: string[], options: { cwd?: string; env?: Env } = {}): void {
@@ -68,12 +83,8 @@ export const RUNTIME_INSTALL_FLAGS = ["--ignore-scripts", "--omit=dev", "--omit=
 export function release(inputs: Inputs, env: Env, actionPath: string, cwd: string): void {
   run("npm", ["ci", "--ignore-scripts"], { cwd });
   run("npm", ["ci", ...RUNTIME_INSTALL_FLAGS, "--prefix", actionPath], { cwd });
-  run(
-    join(actionPath, "node_modules", ".bin", "semantic-release"),
-    ["--extends", join(actionPath, "release.config.mjs")],
-    {
-      cwd,
-      env: releaseEnv(inputs, env),
-    }
-  );
+  run(join(actionPath, "node_modules", ".bin", "semantic-release"), semanticReleaseArgs(inputs, actionPath), {
+    cwd,
+    env: releaseEnv(inputs, env),
+  });
 }

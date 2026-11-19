@@ -40,6 +40,7 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
       GITHUB_STEP_SUMMARY: summaryFile,
       INPUT_MODE: "check",
       "INPUT_BASELINE-COMMIT": useBaseline ? fixture.baseline : "",
+      "INPUT_DRY-RUN": "false",
       "INPUT_GITHUB-TOKEN": "",
       ...inputs,
     },
