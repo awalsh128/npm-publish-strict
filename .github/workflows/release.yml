@@ -85,10 +85,6 @@ jobs:
           GIT_CREDENTIALS: x-access-token:${{ steps.octo-sts.outputs.token }}
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
-          # Release notes and versions only count commits after this one (release.config.mjs). It is
-          # the last commit before the action was trimmed to its current inputs (#22), so the notes
-          # for 1.0.0 describe the action as it is, not inputs and features that no longer exist.
-          BASELINE_COMMIT: 482c32df431cb8e027caa424fe2b6741f31760ff
         run: npx semantic-release $DRY_RUN
 
       # A release tags HEAD, so a tag on HEAD means this run released. Bundle exactly what consumers
