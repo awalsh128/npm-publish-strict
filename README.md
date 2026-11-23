@@ -1,8 +1,18 @@
-# <img src="assets/logo.svg" alt="NPM Publish Strict" height="60" align="center"> NPM Publish Strict
+<p align="center">
+  <img src="assets/logo.svg" alt="NPM Publish Strict logo" width="128" height="128">
+</p>
 
-[![GitHub release](https://img.shields.io/github/v/release/awalsh128/npm-publish-strict?label=release)](https://github.com/awalsh128/npm-publish-strict/releases)
-[![staging CI](https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=staging&branch=staging)](https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Astaging)
-[![License](https://img.shields.io/github/license/awalsh128/npm-publish-strict)](https://github.com/awalsh128/npm-publish-strict/blob/main/LICENSE)
+<h1 align="center">NPM Publish Strict</h1>
+
+<p align="center">
+  An opinionated GitHub Action that releases an npm package with semantic-release and trusted publishing.
+</p>
+
+<p align="center">
+  <a href="https://github.com/awalsh128/npm-publish-strict/releases"><img src="https://img.shields.io/github/v/release/awalsh128/npm-publish-strict?label=release" alt="GitHub release"></a>
+  <a href="https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Astaging"><img src="https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=staging&branch=staging" alt="staging CI"></a>
+  <a href="https://github.com/awalsh128/npm-publish-strict/blob/main/LICENSE"><img src="https://img.shields.io/github/license/awalsh128/npm-publish-strict" alt="License"></a>
+</p>
 
 An opinionated GitHub Action that releases an npm package. It runs
 [semantic-release](https://semantic-release.gitbook.io) (Conventional Commits), builds API docs with typedoc,
@@ -15,10 +25,17 @@ preconditions, it stops before releasing and tells you exactly how to fix each o
 - 🔎 `mode: check` verifies the setup, including the live npm trusted publisher exchange, without releasing
 - 🛡️ Provenance on the package, and a build attestation on each release of this action
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/awalsh128)
+<!-- prettier-ignore -->
+<p align="center">
+  <a href="https://github.com/sponsors/awalsh128"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor awalsh128"></a>
+</p>
 
-If you find this project useful, please consider [sponsoring it](https://github.com/sponsors/awalsh128) and
-show some ❤️ for open source maintainers.
+<p align="center">
+  Free and open source, and kept up by one person.<br />
+  If it saves you time, <a href="https://github.com/sponsors/awalsh128">sponsor it monthly</a> or
+  <a href="https://github.com/sponsors/awalsh128?frequency=one-time">leave a small one-time tip</a>. Every bit
+  helps.
+</p>
 
 ## Quick Start
 
