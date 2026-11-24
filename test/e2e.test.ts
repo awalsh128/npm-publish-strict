@@ -42,6 +42,7 @@ function runAction(scenario: Scenario, inputs: Record<string, string> = {}, useB
       "INPUT_BASELINE-COMMIT": useBaseline ? fixture.baseline : "",
       INPUT_BUMP: "auto",
       "INPUT_DRY-RUN": "false",
+      "INPUT_OUTPUT-JSON": "false",
       "INPUT_GITHUB-TOKEN": "",
       ...inputs,
     },
@@ -69,6 +70,20 @@ describe("dist/main.js in check mode", () => {
     expect(run.failedChecks).toBe("commit-messages");
     expect(run.summary).toContain("Legacy message");
     expect(run.summary).toContain("mode: check");
+  });
+
+  it("output-json without an artifact service writes outputs.json, warns and keeps the exit code", () => {
+    const runnerTemp = mkdtempSync(join(tmpdir(), "e2e-temp-"));
+
+    const run = runAction("healthy", { "INPUT_OUTPUT-JSON": "true", RUNNER_TEMP: runnerTemp });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain("Could not upload outputs.json");
+    expect(
+      JSON.parse(readFileSync(join(runnerTemp, "npm-publish-strict-outputs", "outputs.json"), "utf8"))
+    ).toEqual({
+      "failed-checks": "",
+    });
   });
 
   it("same history with the baseline set exits 0", () => {

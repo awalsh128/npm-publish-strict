@@ -19,6 +19,8 @@ export interface Inputs {
   bump: Bump;
   /** True to run semantic-release with `--dry-run`: nothing is tagged or published. */
   dryRun: boolean;
+  /** True to upload every output of the run as one JSON file in a workflow artifact. */
+  outputJson: boolean;
   githubToken: string;
 }
 
@@ -39,14 +41,18 @@ export function readInputs(env: Env): Inputs {
     throw new Error(`Input 'mode' must be 'release' or 'check', not '${mode}'.`);
   const bump = BUMPS.find((b) => b === input("bump"));
   if (!bump) throw new Error(`Input 'bump' must be one of ${BUMPS.join(", ")}, not '${input("bump")}'.`);
-  const dryRun = input("dry-run");
-  if (dryRun !== "true" && dryRun !== "false")
-    throw new Error(`Input 'dry-run' must be 'true' or 'false', not '${dryRun}'.`);
+  const flag = (name: string): boolean => {
+    const value = input(name);
+    if (value !== "true" && value !== "false")
+      throw new Error(`Input '${name}' must be 'true' or 'false', not '${value}'.`);
+    return value === "true";
+  };
   return {
     mode,
     baselineCommit: input("baseline-commit"),
     bump,
-    dryRun: dryRun === "true",
+    dryRun: flag("dry-run"),
+    outputJson: flag("output-json"),
     githubToken: input("github-token"),
   };
 }

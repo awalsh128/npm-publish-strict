@@ -95,6 +95,7 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `bump`            | no       | `auto`         | Smallest bump to release (`patch`, `minor`, `major`); commits can raise it                            |
 | `dry-run`         | no       | `false`        | `true` releases nothing: the checks run and semantic-release logs the version and notes it would make |
 | `baseline-commit` | no       |                | Enforce and version only commits after this SHA                                                       |
+| `output-json`     | no       | `false`        | `true` also uploads every output as one `outputs.json` in a workflow artifact                         |
 | `github-token`    | no       | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
 
 The rest is convention, not configuration: the package is at the repository root, tags are `v${version}`,
@@ -104,6 +105,10 @@ The rest is convention, not configuration: the package is at the repository root
 
 A later step or job can use them through the step's `id` (`steps.release.outputs.version`). Release outputs
 are empty when nothing was released.
+
+Set `output-json: true` to also get all of them as one `outputs.json` in a workflow artifact named
+`npm-publish-strict-outputs-<job>-<step>-<attempt>`, for example to download them in a later job. The
+individual outputs are set either way, and a failed upload only warns.
 
 | Output          | Meaning                                                          |
 | --------------- | ---------------------------------------------------------------- |

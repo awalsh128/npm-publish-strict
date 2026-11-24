@@ -14,6 +14,7 @@ const DEFAULT_INPUTS = {
   "INPUT_BASELINE-COMMIT": "",
   INPUT_BUMP: "auto",
   "INPUT_DRY-RUN": "false",
+  "INPUT_OUTPUT-JSON": "false",
   "INPUT_GITHUB-TOKEN": "tok",
 };
 
@@ -58,6 +59,7 @@ describe("readInputs", () => {
       baselineCommit: "",
       bump: "auto",
       dryRun: false,
+      outputJson: false,
       githubToken: "tok",
     });
   });
@@ -94,6 +96,18 @@ describe("readInputs dry-run", () => {
   it.each(["", "yes", "TRUE"])("'%s' throws", (value) => {
     expect(() => readInputs({ ...DEFAULT_INPUTS, "INPUT_DRY-RUN": value })).toThrow(
       "must be 'true' or 'false'"
+    );
+  });
+});
+
+describe("readInputs output-json", () => {
+  it("true is read as on", () => {
+    expect(readInputs({ ...DEFAULT_INPUTS, "INPUT_OUTPUT-JSON": "true" }).outputJson).toBe(true);
+  });
+
+  it.each(["", "yes", "TRUE"])("'%s' throws", (value) => {
+    expect(() => readInputs({ ...DEFAULT_INPUTS, "INPUT_OUTPUT-JSON": value })).toThrow(
+      "Input 'output-json' must be 'true' or 'false'"
     );
   });
 });
