@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/awalsh128/npm-publish-strict/releases"><img src="https://img.shields.io/github/v/release/awalsh128/npm-publish-strict?label=release" alt="GitHub release"></a>
+  <a href="https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=main&branch=main" alt="main CI"></a>
   <a href="https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Astaging"><img src="https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=staging&branch=staging" alt="staging CI"></a>
 </p>
 
