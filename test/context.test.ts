@@ -4,7 +4,14 @@ import { buildContext } from "../src/context.js";
 // getIDToken would call the runner's token service; only the exchange with npm is under test.
 vi.mock("@actions/core", () => ({ getIDToken: vi.fn().mockResolvedValue("jwt") }));
 
-const INPUTS = { mode: "check", baselineCommit: "", bump: "auto", dryRun: false, githubToken: "" } as const;
+const INPUTS = {
+  mode: "check",
+  baselineCommit: "",
+  bump: "auto",
+  dryRun: false,
+  outputJson: false,
+  githubToken: "",
+} as const;
 const WITH_OIDC = { ACTIONS_ID_TOKEN_REQUEST_URL: "https://token.example/" };
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status });
 

@@ -52,6 +52,7 @@ describe("report", () => {
       errors,
       log: {
         info: () => undefined,
+        warn: () => undefined,
         error: (m: string) => errors.push(m),
         group: () => ({ dispose: () => undefined }),
       },

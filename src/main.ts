@@ -1,14 +1,13 @@
 import { runChecks } from "./checks.js";
 import { setOutput } from "@actions/core";
 import { buildContext } from "./context.js";
-import { actionRoot, readInputs, release } from "./release.js";
+import type { Log } from "./logger.js";
 import { createLogger } from "./logger.js";
+import { publishOutputsJson, uploadArtifact } from "./outputs.js";
+import { actionRoot, readInputs, release, type Inputs } from "./release.js";
 import { report } from "./report.js";
 
-async function main(): Promise<void> {
-  const log = createLogger();
-  const env = process.env;
-  const inputs = readInputs(env);
+async function run(inputs: Inputs, env: NodeJS.ProcessEnv, log: Log): Promise<void> {
   const ctx = buildContext(inputs, env);
 
   const results = await runChecks(ctx);
@@ -23,6 +22,18 @@ async function main(): Promise<void> {
     return;
   }
   release(inputs, env, actionRoot(), ctx.cwd);
+}
+
+async function main(): Promise<void> {
+  const log = createLogger();
+  const env = process.env;
+  const inputs = readInputs(env);
+  try {
+    await run(inputs, env, log);
+  } finally {
+    // Whatever the run did, its outputs are worth having, so this also runs after a failed check or release.
+    if (inputs.outputJson) await publishOutputsJson(env, uploadArtifact, log);
+  }
 }
 
 main().catch((error: unknown) => {

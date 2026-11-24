@@ -33,6 +33,13 @@ inputs:
       the version and release notes it would produce. Has no effect in 'check' mode.
     required: false
     default: "false"
+  output-json:
+    description: >-
+      'true' also uploads every output of the run as one JSON file, `outputs.json`, in a workflow artifact
+      named `npm-publish-strict-outputs-<job>-<step>-<attempt>`. The individual outputs are set either way. A
+      failed upload only warns.
+    required: false
+    default: "false"
   github-token:
     description: "Token for the GitHub API (releases, issue comments) and for pushing the release tag."
     required: false

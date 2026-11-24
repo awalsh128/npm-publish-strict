@@ -37,12 +37,13 @@ You are an expert developer focused on TypeScript, DevOps, Git, and GitHub Actio
 - `scripts/ops/typedoc/`: typedoc with its own lockfile and TypeScript 6 (typedoc doesn't support TypeScript 7
   yet), so this repo has the `docs:api` script `release.config.mjs` runs.
 - Keep runtime `dependencies` at zero in `src/`; Node built-ins plus `@octokit/rest` for GitHub API calls and
-  `@awalsh128/winston-github-actions` for logging (`src/logger.ts`), `semver` for version comparison, and
-  `@actions/core` for outputs and the OIDC token. `@actions/core` is a runtime dependency because
-  `release.config.mjs` imports it after the action installs with `--omit=dev`; every package
-  `release.config.mjs` imports must be one. Octokit, the logger and `semver` are devDependencies that
-  `esbuild.config.mjs` bundles into `dist/main.js` and `dist/semver.js`, so the action runs before any
-  install. semantic-release and its plugins are installed from this repo's lockfile at run time.
+  `@awalsh128/winston-github-actions` for logging (`src/logger.ts`), `semver` for version comparison,
+  `@actions/artifact` for the `output-json` upload (loaded only when that input is on), and `@actions/core`
+  for outputs and the OIDC token. `@actions/core` is a runtime dependency because `release.config.mjs` imports
+  it after the action installs with `--omit=dev`; every package `release.config.mjs` imports must be one.
+  Octokit, the logger, `@actions/artifact` and `semver` are devDependencies that `esbuild.config.mjs` bundles
+  into `dist/main.js` and `dist/semver.js`, so the action runs before any install. semantic-release and its
+  plugins are installed from this repo's lockfile at run time.
 - Every precondition MUST return a `Failure` with `problem`, `automated` commands, `manual` steps with
   navigation, and `links`. Never fail with a bare message.
 - Conventions enforced on consumers: the package at the repository root, tags `v${version}`, placeholder
