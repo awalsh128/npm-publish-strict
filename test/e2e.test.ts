@@ -1,7 +1,7 @@
 // Runs the built action (dist/main.js) in a child process against fixture repositories, with the
 // environment GitHub Actions would provide. Needs `npm run build` first (npm test does it).
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -79,9 +79,8 @@ describe("dist/main.js in check mode", () => {
 
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("Could not upload outputs.json");
-    expect(
-      JSON.parse(readFileSync(join(runnerTemp, "npm-publish-strict-outputs", "outputs.json"), "utf8"))
-    ).toEqual({
+    const [outputsDirectory] = readdirSync(runnerTemp); // the run's own random directory, the only entry
+    expect(JSON.parse(readFileSync(join(runnerTemp, outputsDirectory!, "outputs.json"), "utf8"))).toEqual({
       "failed-checks": "",
     });
   });

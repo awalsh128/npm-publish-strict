@@ -162304,7 +162304,7 @@ var CheckRunTransport = class extends import_winston_transport2.default {
 var createLogger2 = () => new ActionsLogger();
 
 // src/outputs.ts
-import { mkdirSync, readFileSync as readFileSync6, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync as readFileSync6, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join7 } from "node:path";
 var OUTPUTS_FILE = "outputs.json";
@@ -162338,8 +162338,7 @@ async function publishOutputsJson(env, upload, log2) {
   try {
     const outputFile = env.GITHUB_OUTPUT;
     const outputs = outputFile ? parseOutputFile(readFileSync6(outputFile, "utf8")) : {};
-    const directory = join7(env.RUNNER_TEMP ?? tmpdir(), "npm-publish-strict-outputs");
-    mkdirSync(directory, { recursive: true });
+    const directory = mkdtempSync(join7(env.RUNNER_TEMP ?? tmpdir(), "npm-publish-strict-outputs-"));
     writeFileSync(join7(directory, OUTPUTS_FILE), `${JSON.stringify(outputs, null, 2)}
 `);
     await upload(outputsArtifactName(env), OUTPUTS_FILE, directory);

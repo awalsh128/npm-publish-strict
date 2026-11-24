@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Log } from "./logger.js";
@@ -59,8 +59,8 @@ export async function publishOutputsJson(env: Env, upload: UploadArtifact, log: 
   try {
     const outputFile = env.GITHUB_OUTPUT;
     const outputs = outputFile ? parseOutputFile(readFileSync(outputFile, "utf8")) : {};
-    const directory = join(env.RUNNER_TEMP ?? tmpdir(), "npm-publish-strict-outputs");
-    mkdirSync(directory, { recursive: true });
+    // A fresh directory with a random name, so nothing predictable is created in a shared temp directory.
+    const directory = mkdtempSync(join(env.RUNNER_TEMP ?? tmpdir(), "npm-publish-strict-outputs-"));
     writeFileSync(join(directory, OUTPUTS_FILE), `${JSON.stringify(outputs, null, 2)}\n`);
     await upload(outputsArtifactName(env), OUTPUTS_FILE, directory);
     log.info(`Uploaded all outputs as ${OUTPUTS_FILE} in the workflow artifact ${outputsArtifactName(env)}.`);
