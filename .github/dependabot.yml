@@ -13,6 +13,10 @@ updates:
       # still loads writer 8, so release notes fail to render. Lift this when it supports writer 9.
       - dependency-name: conventional-changelog-conventionalcommits
         update-types: ["version-update:semver-major"]
+      # Version 26 needs Node >=26.13, but this action and its release job run on Node 24. Lift this when
+      # the release job can run on Node 26.
+      - dependency-name: semantic-release
+        update-types: ["version-update:semver-major"]
   # typedoc and the TypeScript 6 it needs, apart from the root lockfile (see its package.json).
   - package-ecosystem: npm
     directory: /scripts/ops/typedoc
