@@ -10,8 +10,8 @@
 
 <p align="center">
   <a href="https://github.com/awalsh128/npm-publish-strict/releases"><img src="https://img.shields.io/github/v/release/awalsh128/npm-publish-strict?label=release" alt="GitHub release"></a>
+  <a href="https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=main&branch=main" alt="main CI"></a>
   <a href="https://github.com/awalsh128/npm-publish-strict/actions/workflows/ci.yml?query=branch%3Astaging"><img src="https://img.shields.io/github/actions/workflow/status/awalsh128/npm-publish-strict/ci.yml?label=staging&branch=staging" alt="staging CI"></a>
-  <a href="https://github.com/awalsh128/npm-publish-strict/blob/main/LICENSE"><img src="https://img.shields.io/github/license/awalsh128/npm-publish-strict" alt="License"></a>
 </p>
 
 An opinionated GitHub Action that releases an npm package. It runs
@@ -36,6 +36,11 @@ preconditions, it stops before releasing and tells you exactly how to fix each o
   <a href="https://github.com/sponsors/awalsh128?frequency=one-time">leave a small one-time tip</a>. Every bit
   helps.
 </p>
+
+<!-- prettier-ignore -->
+> [!IMPORTANT]
+> The release job needs `contents: write` and `id-token: write`, full git history (`fetch-depth: 0`) and a
+> public repository (npm only issues provenance for public repos).
 
 ## Quick Start
 
@@ -63,19 +68,19 @@ jobs:
           node-version: 24
           cache: npm
       - id: release
-        uses: awalsh128/npm-publish-strict@<sha>
+        uses: awalsh128/npm-publish-strict@c70700da8bf385050717a1749a938d39dbd3987d # v1.1.0
 ```
 
 Configure the package's trusted publisher on npmjs.com for this workflow file (or run
 `npm trust github <package> --file release.yml --repo <owner>/<repo>`).
 
-| Input             | Default        | Purpose                                                                                               |
-| ----------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
-| `mode`            | `release`      | `check` only verifies preconditions, from any branch                                                  |
-| `bump`            | `auto`         | Smallest bump to release (`patch`, `minor`, `major`); commits can raise it                            |
-| `dry-run`         | `false`        | `true` releases nothing: the checks run and semantic-release logs the version and notes it would make |
-| `baseline-commit` |                | Enforce and version only commits after this SHA                                                       |
-| `github-token`    | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
+| Input             | Required | Default        | Purpose                                                                                               |
+| ----------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| `mode`            | no       | `release`      | `check` only verifies preconditions, from any branch                                                  |
+| `bump`            | no       | `auto`         | Smallest bump to release (`patch`, `minor`, `major`); commits can raise it                            |
+| `dry-run`         | no       | `false`        | `true` releases nothing: the checks run and semantic-release logs the version and notes it would make |
+| `baseline-commit` | no       |                | Enforce and version only commits after this SHA                                                       |
+| `github-token`    | no       | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
 
 The rest is convention, not configuration: the package is at the repository root, tags are `v${version}`,
 `main` releases and `staging` cuts candidates, and `npm run docs:api` writes the docs to `docs/api`. If a tag
@@ -137,7 +142,7 @@ Then **verify the fix** without releasing anything: run the action with `mode: c
 checks, including the live npm trusted publisher exchange, and does nothing else.
 
 ```yaml
-- uses: awalsh128/npm-publish-strict@<sha>
+- uses: awalsh128/npm-publish-strict@c70700da8bf385050717a1749a938d39dbd3987d # v1.1.0
   with:
     mode: check
 ```
