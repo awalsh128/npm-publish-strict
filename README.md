@@ -15,15 +15,19 @@
 </p>
 
 An opinionated GitHub Action that releases an npm package. It runs
-[semantic-release](https://semantic-release.gitbook.io) (Conventional Commits), builds API docs with typedoc,
-and publishes to npm with trusted publishing (OIDC, no token). When the repository doesn't meet its
-preconditions, it stops before releasing and tells you exactly how to fix each one.
+[semantic-release](https://semantic-release.gitbook.io)
+([Conventional Commits](https://www.conventionalcommits.org)), builds API docs with
+[typedoc](https://typedoc.org), and publishes to npm with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers)
+([OIDC](https://docs.github.com/en/actions/concepts/security/openid-connect), no token). When the repository
+doesn't meet its preconditions, it stops before releasing and tells you exactly how to fix each one.
 
 - 🏷️ Versions, tags and GitHub Releases come from Conventional Commits through semantic-release
 - 🔐 Publishes to npm with trusted publishing, so the repository stores no token
 - ✅ Checks the preconditions first and reports every failure at once, with the steps to fix each
 - 🔎 `mode: check` verifies the setup, including the live npm trusted publisher exchange, without releasing
-- 🛡️ Provenance on the package, and a build attestation on each release of this action
+- 🛡️ [Provenance](https://docs.npmjs.com/generating-provenance-statements) on the package, and a build
+  attestation on each release of this action
 
 <!-- prettier-ignore -->
 <p align="center">
@@ -74,6 +78,17 @@ jobs:
 Configure the package's trusted publisher on npmjs.com for this workflow file (or run
 `npm trust github <package> --file release.yml --repo <owner>/<repo>`).
 
+## Requirements
+
+- The release job needs `contents: write` and `id-token: write`, full git history and a public repository, as
+  in the callout above.
+- npm 11.5.1 or later on the release branch, and the package's trusted publisher set up on npmjs.com.
+- Node 24 runtime (`runs.using: node24`).
+
+## Configuration
+
+### Inputs
+
 | Input             | Required | Default        | Purpose                                                                                               |
 | ----------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------- |
 | `mode`            | no       | `release`      | `check` only verifies preconditions, from any branch                                                  |
@@ -83,11 +98,9 @@ Configure the package's trusted publisher on npmjs.com for this workflow file (o
 | `github-token`    | no       | `github.token` | Token for the GitHub API and for pushing the release tag                                              |
 
 The rest is convention, not configuration: the package is at the repository root, tags are `v${version}`,
-`main` releases and `staging` cuts candidates, and `npm run docs:api` writes the docs to `docs/api`. If a tag
-ruleset blocks `github-token` from creating tags, set `GIT_CREDENTIALS` (`x-access-token:<token>`, for example
-from a GitHub App) in the step's `env`.
+`main` releases and `staging` cuts candidates, and `npm run docs:api` writes the docs to `docs/api`.
 
-## Outputs
+### Outputs
 
 A later step or job can use them through the step's `id` (`steps.release.outputs.version`). Release outputs
 are empty when nothing was released.
@@ -107,39 +120,12 @@ are empty when nothing was released.
 | `release-url`   | GitHub Release URL                                               |
 | `release-notes` | Markdown release notes                                           |
 
-## Preconditions
+## Checks
 
-Every run checks these, and reports all failures at once, not just the first. The branch check applies only in
-`release` mode, and the last row only on the release branch:
-
-| Check                                                                                                                                                                                                                     | Why                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| In `release` mode, runs on `main` (official release, npm publish) or `staging` (`-rc.N` candidate, tag and GitHub prerelease only)                                                                                        | Predictable release flow                                |
-| `package.json` and `package-lock.json` exist                                                                                                                                                                              | Reproducible installs                                   |
-| `version` is the placeholder `0.0.0-semantically-released`                                                                                                                                                                | Releases never commit                                   |
-| `repository` matches the GitHub repository running the workflow                                                                                                                                                           | npm provenance and trusted publishing                   |
-| The `docs:api` script exists; `files` is set; the package isn't `private`                                                                                                                                                 | Docs are built before tagging; contents are predictable |
-| No `CHANGELOG.md`                                                                                                                                                                                                         | Tags and GitHub Releases are the history                |
-| Every `uses:` under `.github/` is pinned to a full commit SHA                                                                                                                                                             | Supply-chain safety                                     |
-| Full git history (`fetch-depth: 0`)                                                                                                                                                                                       | semantic-release reads every commit and tag             |
-| Commits follow Conventional Commits (from `baseline-commit`, when set)                                                                                                                                                    | Versions are computed from commit messages              |
-| On the release branch: the repository is public (npm only issues provenance for public repos), job has `id-token: write`, npm is 11.5.1 or later, and npm accepts this workflow as a **trusted publisher** of the package | Publishing without a token                              |
-
-The trusted publisher check does what `npm publish` does: it exchanges the job's OIDC token with npm. So it
-catches a typo in the workflow filename or repository, which npm never validates when you save the setting.
-
-### When a check fails
-
-The job log and the job summary give, for each failed check:
-
-- **Automated:** commands to run in a clone of the repository (`npm pkg set ...`, `npm trust github ...`,
-  `npx pin-github-action ...`), then commit and push.
-- **Manual:** numbered steps with navigation, for example _Click your avatar > Packages > your-package >
-  Settings > Trusted Publisher_, with the exact values to enter, and YAML snippets for workflow edits.
-- **Read more:** links to the relevant npm and GitHub documentation.
-
-Then **verify the fix** without releasing anything: run the action with `mode: check`. It runs the same
-checks, including the live npm trusted publisher exchange, and does nothing else.
+Every run checks the repository's preconditions and reports all failures at once, with the steps to fix each.
+The full list and the fix guidance are in [docs/preconditions.md](docs/preconditions.md). To verify a fix
+without releasing anything, run the action with `mode: check`. It runs the same checks, including the live npm
+trusted publisher exchange, and does nothing else.
 
 ```yaml
 - uses: awalsh128/npm-publish-strict@c70700da8bf385050717a1749a938d39dbd3987d # v1.1.0
@@ -147,26 +133,20 @@ checks, including the live npm trusted publisher exchange, and does nothing else
     mode: check
 ```
 
-## Adopting Conventional Commits on an existing repository
-
-Commits are checked against Conventional Commits. If your history predates the convention, set
-`baseline-commit` to the last commit that doesn't follow it, or to the current `HEAD`:
-
-```yaml
-with:
-  baseline-commit: 1a2b3c4d5e6f
-```
-
-Commits up to and including the baseline are ignored by the commit check, the version calculation and the
-release notes. Only newer commits count. The baseline must be an ancestor of the commit being released, and
-the action checks that too.
+If your history predates Conventional Commits, set `baseline-commit`; see
+[Adopting Conventional Commits](docs/adopting-conventional-commits.md).
 
 ## Supply chain: attestations
 
+An [attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) is a signed
+statement of where and how an artifact was built, so you can check it came from the claimed repository and
+commit.
+
 - **Your package:** every npm publish from the release branch runs with provenance on
-  (`NPM_CONFIG_PROVENANCE=true`), so npm attaches a signed Sigstore attestation linking the package to your
-  repository, commit and workflow. Consumers verify with `npm audit signatures`. Publishing from a private
-  repository is refused by a precondition, because npm can't issue provenance for it.
+  (`NPM_CONFIG_PROVENANCE=true`), so npm attaches a signed [Sigstore](https://www.sigstore.dev) attestation
+  linking the package to your repository, commit and workflow. Consumers verify with `npm audit signatures`.
+  Publishing from a private repository is refused by a precondition, because npm can't issue provenance for
+  it.
 - **This action:** each release uploads `npm-publish-strict-<tag>.tar.gz` (the manifest, compiled `dist/`, and
   release config) with a GitHub build-provenance attestation. Verify the bytes you run:
 
@@ -177,14 +157,10 @@ the action checks that too.
 
   Pin the action by commit SHA, as the examples do; the attestation covers the same tagged commit.
 
-## Development
+## ⚠️ Caveats
 
-Written in TypeScript (`src/`) and bundled into `dist/` with esbuild.
+- If a tag ruleset blocks `github-token` from creating tags, set `GIT_CREDENTIALS` (`x-access-token:<token>`,
+  for example from a GitHub App) in the step's `env`.
+- Release outputs are empty when nothing was released.
 
-```bash
-npm ci
-npm test             # typechecks and builds dist/, then runs the unit tests and end-to-end runs of dist/ on fixture repos
-npm run build        # typechecks, then bundles src/ into dist/ with esbuild; commit dist/ with every src/ change
-npm run format       # Prettier; a pre-commit hook formats staged files, and CI runs format:check
-npm run docs:api     # API docs into docs/api (needs `npm ci --prefix scripts/ops/typedoc` once)
-```
+Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md).
